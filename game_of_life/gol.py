@@ -26,9 +26,6 @@ class Size(NamedTuple):
     x: int
 
 
-Matrix = list[list[str]]
-
-
 def universe_init(choice: int | str = 4) -> set[Point]:
     """Return initial universe state.
     Examples from:
