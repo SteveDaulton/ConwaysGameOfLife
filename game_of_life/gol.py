@@ -36,14 +36,16 @@ def universe_init(choice: int | str = 4) -> set[Point]:
     """
     presets = {
         'block': {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)},
-        'beehive': {Point(6, 10), Point(6, 11), Point(7, 9), Point(7, 12), Point(8, 10), Point(8, 11)},
+        'beehive': {Point(6, 10), Point(6, 11), Point(7, 9),
+                    Point(7, 12), Point(8, 10), Point(8, 11)},
         'beacon': {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
                    Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)},
         'glider': {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)},
-        'R-pentomino': {Point(10, 51), Point(10, 52), Point(11, 50), Point(11, 51), Point(12, 51)},
+        'R-pentomino': {Point(10, 51), Point(10, 52), Point(11, 50),
+                        Point(11, 51), Point(12, 51)},
         'random': set(Point(randint(0, 98), randint(0, 98)) for _ in range(randint(10, 1000))),
     }
-    
+
     if type(choice) is str:
         return presets[choice]
     if type(choice) is int:
@@ -78,7 +80,7 @@ def main(stdscr: curses.window) -> None:
     # Initialise timer.
     clock = perf_counter()
     # If refresh rate is too fast, then animation will not be smooth.
-    refresh_rate: Final[float] = 0.5
+    refresh_rate: Final[float] = 0.2
 
     # stop if universe is dead.
     while universe != universe_old:
@@ -109,27 +111,23 @@ def throttle(prev: float, period: float) -> float:
 
 
 def update(living: set[Point]) -> set[Point]:
+    """Return a set of new cells that satisfy the rules to
+    be alive, and are within the display range.
+    """
+    new_cells = set()
     # We only need to consider cells that are either alive
     # or neighbouring a live cell.
-    # TODO: Make this more efficient.
-    cells = list(living)
+    cell_set = set(living)
     for cell in living:
-        cells += (neighbour for neighbour in neighbours(cell))
-    cell_set = set(cells)
-
-    # Make a new set of cells from 'cells' that satisfy
-    # rules to be alive in next generation, AND are within
-    # the display range.
-    # TODO: Make this more efficient.
-    new_cells = []
+        cell_set.update(neighbours(cell))
+    # Return the next generation.
     for cell in cell_set:
-        neighbour_cells = neighbours(cell)
-        temp = [n_cell for n_cell in neighbour_cells if n_cell in living]
-        if len(temp) == 3 and cell_in_range(cell):
-            new_cells.append(cell)
-        elif len(temp) == 2 and cell in living and cell_in_range(cell):
-            new_cells.append(cell)
-    return set(new_cells)
+        n_cells = neighbours(cell)
+        live_count = sum(1 for neighbor in n_cells if neighbor in living)
+        if live_count == 3 or (live_count == 2 and cell in living):
+            if cell_in_range(cell):
+                new_cells.add(cell)
+    return new_cells
 
 
 def cell_in_range(cell):
@@ -144,8 +142,8 @@ def refresh_pad(pad, size):
     get size of terminal window immediately before refresh
     in case terminal has been resized.
     """
-    y_max = min(curses.LINES - 1, size[0])
-    x_max = min(curses.COLS - 1, size[1])
+    y_max = min(curses.LINES - 1, size[0])  # pylint: disable=maybe-no-member
+    x_max = min(curses.COLS - 1, size[1])  # pylint: disable=maybe-no-member
     pad.refresh(0, 0, 0, 0, y_max, x_max)
 
 
