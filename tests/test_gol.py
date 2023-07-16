@@ -106,3 +106,7 @@ def test_throttle():
         sleep_duration = (delay - elapsed)
         assert abs (sleep_duration - delay) < 0.002
         mock_napms.assert_called_with(int(sleep_duration * 1000))
+
+
+def test_menu():
+    print_menu()
