@@ -47,7 +47,7 @@ def get_preset(choice: int = -1) -> Preset | list[Preset]:
         Preset('glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
         Preset('R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
                                Point(11, 51), Point(12, 51)}),
-        Preset('random', set(Point(randint(0, 98), randint(0, 98)) for _ in range(randint(10, 1000))))
+        Preset('random', set(Point(randint(0, 38), randint(0, 98)) for _ in range(randint(10, 1000))))
     ]
     if choice >= 0:
         return presets[choice]
