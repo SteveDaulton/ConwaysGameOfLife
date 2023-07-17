@@ -29,6 +29,7 @@ class Size(NamedTuple):
 
 
 class Preset(NamedTuple):
+    idx: int
     name: str
     cells: set[Point]
 
@@ -39,15 +40,15 @@ def get_preset(choice: int = -1) -> Preset | list[Preset]:
     https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
     """
     presets = [
-        Preset('block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
-        Preset('beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
-                           Point(7, 12), Point(8, 10), Point(8, 11)}),
-        Preset('beacon', {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
-                          Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)}),
-        Preset('glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
-        Preset('R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
-                               Point(11, 51), Point(12, 51)}),
-        Preset('random', set(Point(randint(0, 38), randint(0, 98)) for _ in range(randint(10, 1000))))
+        Preset(0, 'block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
+        Preset(1, 'beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
+                              Point(7, 12), Point(8, 10), Point(8, 11)}),
+        Preset(2, 'beacon', {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
+                             Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)}),
+        Preset(3, 'glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
+        Preset(4, 'R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
+                                  Point(11, 51), Point(12, 51)}),
+        Preset(5, 'random', set(Point(randint(0, 38), randint(0, 98)) for _ in range(randint(10, 1000))))
     ]
     if choice >= 0:
         return presets[choice]
@@ -56,16 +57,17 @@ def get_preset(choice: int = -1) -> Preset | list[Preset]:
 
 def display_menu():
     """Print preset choices."""
-    for i, options in enumerate(get_preset()):
-        print(f'{i}. {options.name}')
+    for setting in get_preset():
+        print(f'{setting.idx}. {setting.name}')
     print()
 
 
 def get_user_choice():
+    valid_indices = {option.idx for option in get_preset()}
     while True:
         try:
             choice = int(input("Select initial state: "))
-            if choice < len(get_preset()):
+            if choice in valid_indices:
                 return choice
             else:
                 print("Invalid choice. Please try again.")

@@ -104,9 +104,20 @@ def test_throttle():
         end = throttle(start, delay)
         elapsed = end - start
         sleep_duration = (delay - elapsed)
-        assert abs (sleep_duration - delay) < 0.002
+        assert abs(sleep_duration - delay) < 0.002
         mock_napms.assert_called_with(int(sleep_duration * 1000))
 
 
 def test_menu():
-    print_menu()
+    display_menu()
+
+
+def test_get_preset():
+    presets = get_preset()
+    # Check that presets is a list
+    assert isinstance(presets, list)
+    # Each preset is an instance of Preset named tuple, and
+    # Preset indicies are numbered 0 to n.
+    for i, option in enumerate(presets):
+        assert isinstance(option, Preset)
+        assert i == option.idx
