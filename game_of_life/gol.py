@@ -148,7 +148,7 @@ def main(stdscr: curses.window, choice: int) -> None:
     universe: set[Point] = universe_init(choice)
     universe_old: set[Point] = set()
     # Pad (y, x) must be big enough to hold content.
-    pad_size: Size = Size(y=100, x=100)
+    pad_size: Size = Size(y=40, x=100)
     pad = curses.newpad(pad_size[0], pad_size[1])
 
     # Initialise timer.
