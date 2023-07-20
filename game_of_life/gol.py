@@ -5,59 +5,14 @@ import sys
 import curses
 import argparse
 from random import randint
-from typing import (Generator,
-                    NamedTuple,
-                    Final)
+from typing import Generator
 from functools import partial
 from time import perf_counter
 
-
-class Point(NamedTuple):
-    """Grid coordinates.
-    ncurses' coordinates are ordered y: int, x: int.
-    """
-    y: int
-    x: int
-
-
-class Size(NamedTuple):
-    """Grid size.
-    ncurses' coordinates are ordered y: int, x: int.
-    """
-    y: int
-    x: int
-
-
-class Preset(NamedTuple):
-    """Preset initial state of universe."""
-    idx: int
-    name: str
-    cells: set[Point]
-
-
-def get_preset(choice: int = -1) -> Preset | list[Preset]:
-    """Return preset dictionary or specified preset when valid choice passed.
-    Examples from:
-    https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
-    """
-    presets = [
-        Preset(0, 'block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
-        Preset(1, 'beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
-                              Point(7, 12), Point(8, 10), Point(8, 11)}),
-        Preset(2, 'beacon', {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
-                             Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)}),
-        Preset(3, 'glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
-        Preset(4, 'R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
-                                  Point(11, 51), Point(12, 51)}),
-        # TODO: Use Universe size rather than hard coded ranges for y and x.
-        Preset(5, 'random', set(Point(randint(0, 38), randint(0, 98))
-                                for _ in range(randint(10, 1000))))
-    ]
-    if choice >= 0:
-        if choice < len(presets):
-            return presets[choice]
-        sys.exit('Invalid Preset ID.')
-    return presets
+from game_of_life.custom_types import (
+    Point,
+    Size,
+    Preset)
 
 
 def display_menu():
@@ -80,15 +35,97 @@ def get_user_choice():
             print("Invalid input. Please enter a number.")
 
 
-def universe_init(choice: int) -> set[Point]:
-    """Return initial universe state.
-    Override this function for custom initial state.
-    """
-    # TODO: Make Universe a class to handle global properties
-    # TODO: such as initial state, size of pad, colours, etc.
-    # Keep MyPy happy.
-    assert isinstance((live_cells := get_preset(choice)), Preset), f'Invalid preset id {choice}'
-    return live_cells.cells
+class GameOfLifeUI:
+    """Render GOL to terminal."""
+    _pad_size: Size = Size(y=40, x=100)
+
+    def __init__(self, refresh_rate) -> None:
+        height, width = GameOfLifeUI._pad_size
+        self.pad = curses.newpad(height, width)
+        self.cell_char = ' '
+        self.refresh_rate = refresh_rate
+        self.clock = perf_counter()
+
+    @property
+    def pad_size(self):
+        """self.pad_size from class attribute."""
+        return GameOfLifeUI._pad_size
+
+    @classmethod
+    def display_pad_size(cls) -> Size:
+        """Return cls._pad_size.
+        Public method to get class attribute.
+        """
+        return cls._pad_size
+
+    def populate(self, live_cells: set[Point]) -> None:
+        """Populate pad with live cells."""
+        for y, x in live_cells:
+            self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
+
+    def refresh_pad(self):
+        """Do pad refresh.
+        Refreshed part of pad must fit in visible window, so
+        get size of terminal window immediately before refresh
+        in case terminal has been resized.
+        """
+        if 0.0 < (perf_counter() - self.clock) < self.refresh_rate:
+            sleep_time = self.refresh_rate - (perf_counter() - self.clock)
+            curses.napms(int(sleep_time * 1000))
+        self.clock = perf_counter()
+
+        if curses.is_term_resized(curses.LINES, curses.COLS):
+            # If the terminal has been resized, recalculate y_max and x_max
+            curses.resizeterm(curses.LINES, curses.COLS)
+        y_max = min(curses.LINES - 1, self.pad_size.y)  # pylint: disable=maybe-no-member
+        x_max = min(curses.COLS - 1, self.pad_size.x)  # pylint: disable=maybe-no-member
+        self.pad.refresh(0, 0, 0, 0, y_max, x_max)
+
+    def clear_cells(self, cells: set[Point]) -> None:
+        """Clear the cells on the pad."""
+        for y, x in cells:
+            self.pad.addch(y, x, self.cell_char)
+
+
+class Universe:
+    """Singleton class for Universe."""
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, choice) -> None:
+        if not Universe._initialized:
+            # 'choice' should already be validated.
+            assert isinstance((live_cells := get_preset(choice)), Preset),\
+                f'Invalid preset id {choice}'
+            # Cells must fit in pad, so validate before adding.
+            self.display_size = GameOfLifeUI.display_pad_size()
+            self.live_cells = set(cell for cell in live_cells.cells
+                                  if cell_in_range(self.display_size, cell))
+            Universe._initialized = True
+
+    def update(self) -> set[Point]:
+        """Return a set of new cells that satisfy the rules to
+        be alive, and are within the display range.
+        """
+        new_cells = set()
+        # We only need to consider cells that are either alive
+        # or neighbouring a live cell.
+        cell_set = set(self.live_cells)
+        for cell in self.live_cells:
+            cell_set.update(neighbours(cell))
+        # Return the next generation.
+        for cell in cell_set:
+            n_cells = neighbours(cell)
+            live_count = sum(1 for neighbor in n_cells if neighbor in self.live_cells)
+            if live_count == 3 or (live_count == 2 and cell in self.live_cells):
+                if cell_in_range(self.display_size, cell):
+                    new_cells.add(cell)
+        return new_cells
 
 
 def neighbours(point: Point) -> Generator[Point, None, None]:
@@ -105,108 +142,89 @@ def neighbours(point: Point) -> Generator[Point, None, None]:
     yield Point(y + 1, x + 1)
 
 
-def throttle(prev: float, period: float) -> float:
-    """Wait until 'period' seconds since 'prev' time."""
-    if 0.0 < (perf_counter() - prev) < period:
-        sleep_time = period - (perf_counter() - prev)
-        curses.napms(int(sleep_time * 1000))
-    return perf_counter()
-
-
-def update(living: set[Point]) -> set[Point]:
-    """Return a set of new cells that satisfy the rules to
-    be alive, and are within the display range.
-    """
-    new_cells = set()
-    # We only need to consider cells that are either alive
-    # or neighbouring a live cell.
-    cell_set = set(living)
-    for cell in living:
-        cell_set.update(neighbours(cell))
-    # Return the next generation.
-    for cell in cell_set:
-        n_cells = neighbours(cell)
-        live_count = sum(1 for neighbor in n_cells if neighbor in living)
-        if live_count == 3 or (live_count == 2 and cell in living):
-            if cell_in_range(cell):
-                new_cells.add(cell)
-    return new_cells
-
-
-def cell_in_range(cell: Point) -> bool:
+def cell_in_range(pad_size: Size, cell: Point) -> bool:
     """Return True if cell is within range of pad."""
-    # TODO: Get pad size from Universe rather than duplicating setting.
-    pad_size: Size = Size(y=40, x=100)
     return (pad_size.y - 1 >= cell.y >= 0 and
             pad_size.x - 1 >= cell.x >= 0 and not
             (cell.y == pad_size.y - 1 and cell.x == pad_size.x - 1))
 
 
-def refresh_pad(pad, size):
-    """Do pad refresh.
-    Refreshed part of pad must fit in visible window, so
-    get size of terminal window immediately before refresh
-    in case terminal has been resized.
+def get_preset(choice: int = -1) -> Preset | list[Preset]:
+    """Return preset dictionary or specified preset when valid choice passed.
+    Examples from:
+    https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
     """
-    y_max = min(curses.LINES - 1, size[0])  # pylint: disable=maybe-no-member
-    x_max = min(curses.COLS - 1, size[1])  # pylint: disable=maybe-no-member
-    pad.refresh(0, 0, 0, 0, y_max, x_max)
+    max_x, max_y = GameOfLifeUI.display_pad_size()
+    max_x -= 1
+    max_y -= 1
+    presets = [
+        Preset(0, 'block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
+        Preset(1, 'beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
+                              Point(7, 12), Point(8, 10), Point(8, 11)}),
+        Preset(2, 'beacon', {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
+                             Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)}),
+        Preset(3, 'glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
+        Preset(4, 'R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
+                                  Point(11, 51), Point(12, 51)}),
+        # Random preset 'may' include bottom right corner cell, which
+        # is invalid, but will be caught by validation when Universe
+        # is initialised.
+        Preset(5, 'random', set(Point(randint(0, max_x), randint(0, max_y))
+                                for _ in range(randint(1, max_x * max_y))))
+    ]
+    if choice >= 0:
+        return presets[choice]
+    return presets
 
 
-def main(stdscr: curses.window, choice: int) -> None:
+def main(stdscr: curses.window, choice: int,
+         refresh_rate: float) -> None:
     """Play the Game of Life."""
     curses.curs_set(0)  # Turn off blinking cursor.
     stdscr.clear()
-    universe: set[Point] = universe_init(choice)
-    universe_old: set[Point] = set()
-    # Pad (y, x) must be big enough to hold content.
-    # TODO: This should be part of Universe settings.
-    pad_size: Size = Size(y=40, x=100)
-    pad = curses.newpad(pad_size[0], pad_size[1])
 
-    # Initialise timer.
-    clock = perf_counter()
-    # If refresh rate is too fast, then animation will not be smooth.
-    # TODO: This should be part of Universe settings.
-    refresh_rate: Final[float] = 0.1
+    ui = GameOfLifeUI(refresh_rate)
+    universe = Universe(choice)
+    universe_old: set[Point] = set()
 
     while True:
         # Clear old cells.
-        # This is a bit quicker than using pad.clear()
-        for y, x in universe_old:
-            pad.addch(y, x, ' ')
-
+        ui.clear_cells(universe_old)
         # Add content to pad in reverse colours
-        # TODO: Validate cells in Universe initial state.
-        for y, x in universe:
-            pad.addch(y, x, ' ', curses.A_REVERSE)
-
-        # Wait before updating.
-        clock = throttle(clock, refresh_rate)
-        refresh_pad(pad, pad_size)
-
+        ui.populate(universe.live_cells)
+        # Render to screen.
+        ui.refresh_pad()
         # Update to next generation.
-        universe_old = universe
-        universe = update(universe)
+        universe_old = universe.live_cells
+        universe.live_cells = universe.update()
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        # No arguments were passed
+        # No arguments were passed.
         display_menu()
         user_choice = get_user_choice()
-        partial_main = partial(main, choice=user_choice)
+        partial_main = partial(main, choice=user_choice,
+                               refresh_rate=0.5)
         curses.wrapper(partial_main)
     else:
         # Arguments were passed
         parser = argparse.ArgumentParser(
             description="Conway's Game of Life.",
-            epilog="Ctrl + C to quit.")
-        parser.add_argument('-p', '--preset', type=int, help='Select preset by number.')
-        args = parser.parse_args()
+            epilog="Ctrl + C to quit.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-p', '--preset', type=int, default=4,
+                            help='Select preset by number.')
+        parser.add_argument('-r', '--refresh_rate', type=float, default=0.5,
+                            help='Time per frame (seconds)')
+        arguments = parser.parse_args()
         try:
-            preset = get_preset(args.preset)
+            preset = get_preset(arguments.preset)
         except IndexError:
-            sys.exit(f'Invalid preset number. Select a preset from 0 to {len(get_preset())}')
-        partial_main = partial(main, choice=args.preset)
+            parser.print_help()
+            sys.exit(('\nError.\n'
+                      f'"{arguments.preset}" is out of range.\n'
+                      f'Select a preset from 0 to {len(get_preset())}'))
+        partial_main = partial(main, choice=arguments.preset,
+                               refresh_rate=arguments.refresh_rate)
         curses.wrapper(partial_main)
