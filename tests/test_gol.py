@@ -1,5 +1,4 @@
 from game_of_life.gol import *
-from unittest.mock import patch
 import pytest
 
 
@@ -44,68 +43,29 @@ def test_size():
 
 
 def test_update():
-    assert len(update({Point(10, 10)})) == 0
-    univ = {Point(10, 10), Point(10, 11), Point(10, 12)}
+    universe = Universe(0)
+    universe.live_cells = {Point(10, 10)}
+    assert len(universe.update()) == 0
+    universe.live_cells = {Point(10, 10), Point(10, 11), Point(10, 12)}
     expected = {Point(9, 11), Point(10, 11), Point(11, 11)}
-    assert update(univ) == expected
-    univ = {Point(10, 10), Point(10, 11), Point(9, 10)}
+    assert universe.update() == expected
+    universe.live_cells = {Point(10, 10), Point(10, 11), Point(9, 10)}
     expected = {Point(9, 11), Point(10, 10), Point(10, 11), Point(9, 10)}
-    assert update(univ) == expected
-    univ = {Point(0, 0), Point(0, 1), Point(2, 0)}
+    assert universe.update() == expected
+    universe.live_cells = {Point(0, 0), Point(0, 1), Point(2, 0)}
     expected = {Point(1, 0), Point(1, 1)}
-    assert update(univ) == expected
+    assert universe.update() == expected
 
 
 def test_cell_in_range():
-    assert cell_in_range((99, 99)) is False
-    assert cell_in_range((0, 0)) is True
-    assert cell_in_range((-1, 0)) is False
-    assert cell_in_range((1, -1)) is False
-    assert cell_in_range((98, 99)) is True
-    assert cell_in_range((99, 98)) is True
-    assert cell_in_range((100, 0)) is False
-    assert cell_in_range((0, 100)) is False
-
-
-def test_throttle():
-    """Test throttle()
-    Note: curses.napms does not perform correctly with
-    tests, so mock napms to test that it receives the
-     correct arguments."""
-    with patch("curses.napms") as mock_napms:
-        # Case 1: No waiting needed
-        start = perf_counter()
-        end = throttle(start, 0.0)
-        elapsed = end - start
-        assert 0.0 <= abs(elapsed) < 0.001
-        mock_napms.assert_not_called()
-
-        # Case 2: waiting period already exceeded
-        start = perf_counter() + 0.6
-        delay = 0.5
-        end = throttle(start, delay)
-        assert abs(throttle(start, delay) - perf_counter()) < 0.001
-        elapsed = end - start
-        assert elapsed < 0.0
-        mock_napms.assert_not_called()
-
-        # Case 3: Short wait needed
-        start = perf_counter()
-        delay = 0.2
-        end = throttle(start, delay)
-        elapsed = end - start
-        sleep_duration = (delay - elapsed)
-        assert abs(sleep_duration - delay) > 0.0
-        mock_napms.assert_called_with(int(sleep_duration * 1000))
-
-        # Case 4: Long wait needed
-        start = perf_counter()
-        delay = 2.0
-        end = throttle(start, delay)
-        elapsed = end - start
-        sleep_duration = (delay - elapsed)
-        assert abs(sleep_duration - delay) < 0.002
-        mock_napms.assert_called_with(int(sleep_duration * 1000))
+    assert cell_in_range(Size(100, 100), Point(99, 99)) is False
+    assert cell_in_range(Size(100, 100), Point(0, 0)) is True
+    assert cell_in_range(Size(100, 100), Point(-1, 0)) is False
+    assert cell_in_range(Size(100, 100), Point(1, -1)) is False
+    assert cell_in_range(Size(100, 100), Point(98, 99)) is True
+    assert cell_in_range(Size(100, 100), Point(99, 98)) is True
+    assert cell_in_range(Size(100, 100), Point(100, 0)) is False
+    assert cell_in_range(Size(100, 100), Point(0, 100)) is False
 
 
 def test_menu():
