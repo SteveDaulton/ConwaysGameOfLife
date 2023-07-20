@@ -9,7 +9,7 @@ from typing import Generator
 from functools import partial
 from time import perf_counter
 
-from game_of_life.custom_types import (
+from custom_types import (
     Point,
     Size,
     Preset)
