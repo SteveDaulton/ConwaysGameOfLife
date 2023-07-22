@@ -48,7 +48,7 @@ Installing / importing a UI library seemed like overkill for such simple graphic
 whereas curses is included in Python (on Linux). Curses is extremely lightweight, requiring
 only a basic text terminal to run.
 
-Would I choose to use curses again?
+#### Would I choose to use curses again?
 
 Curses is very old, and it shows. Where curses falls down is in areas that were
 not relevant 30+ years ago, but that we take for granted in the 21st century.
