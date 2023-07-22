@@ -22,13 +22,13 @@ def display_menu():
 
 def get_preset(choice: int = -1) -> Preset | list[Preset]:
     """Return preset dictionary or specified preset when valid choice passed."""
-    max_x, max_y = GameOfLifeUI.display_pad_size()
-    max_x -= 1
-    max_y -= 1
     presets = PRESETS
     # Random preset 'may' include bottom right corner cell, which
     # is invalid, but will be caught by validation when Universe
     # is initialised.
+    max_x, max_y = GameOfLifeUI.display_pad_size()
+    max_x -= 1
+    max_y -= 1
     random_id = presets[-1][0] + 1
     random_preset = Preset(random_id, 'Random',
                            set(Point(randint(0, max_x), randint(0, max_y))
@@ -78,7 +78,11 @@ class GameOfLifeUI:
     def populate(self, live_cells: set[Point]) -> None:
         """Populate pad with live cells."""
         for y, x in live_cells:
-            self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
+            try:
+                self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
+            except curses.error:
+                # addch to bottom right corner throws a curses error
+                pass
 
     def refresh_pad(self):
         """Do pad refresh.
@@ -101,7 +105,11 @@ class GameOfLifeUI:
     def clear_cells(self, cells: set[Point]) -> None:
         """Clear the cells on the pad."""
         for y, x in cells:
-            self.pad.addch(y, x, self.cell_char)
+            try:
+                self.pad.addch(y, x, self.cell_char)
+            except curses.error:
+                # addch to bottom right corner throws a curses error
+                pass
 
 
 class Universe:
@@ -162,8 +170,7 @@ def neighbours(point: Point) -> Generator[Point, None, None]:
 def cell_in_range(pad_size: Size, cell: Point) -> bool:
     """Return True if cell is within range of pad."""
     return (pad_size.y - 1 >= cell.y >= 0 and
-            pad_size.x - 1 >= cell.x >= 0 and not
-            (cell.y == pad_size.y - 1 and cell.x == pad_size.x - 1))
+            pad_size.x - 1 >= cell.x >= 0)
 
 
 def main(stdscr: curses.window, choice: int,
