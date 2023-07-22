@@ -39,7 +39,7 @@ else:
 
 I wrote this little application primarily as an exercise / excuse to try out
 Python's curses module. Treating this as a Python programming exercise, it is
-my intention to follow `PEP-8 <https://pep8.org/>`_ closely, and include
+my intention to follow [PEP-8](https://pep8.org/) closely, and include
 docstrings, type hints and tests.
 
 ### Why (not) Curses?
