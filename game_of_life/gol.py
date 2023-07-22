@@ -1,15 +1,13 @@
 """The Game of Life.
 """
 
-import sys
 import curses
-import argparse
-from random import randint
 from typing import Generator
-from functools import partial
 from time import perf_counter
+from random import randint
 
-from custom_types import (
+from game_of_life.presets import PRESETS
+from game_of_life.custom_types import (
     Point,
     Size,
     Preset)
@@ -20,6 +18,25 @@ def display_menu():
     for setting in get_preset():
         print(f'{setting.idx}. {setting.name}')
     print()
+
+
+def get_preset(choice: int = -1) -> Preset | list[Preset]:
+    """Return preset dictionary or specified preset when valid choice passed."""
+    max_x, max_y = GameOfLifeUI.display_pad_size()
+    max_x -= 1
+    max_y -= 1
+    presets = PRESETS
+    # Random preset 'may' include bottom right corner cell, which
+    # is invalid, but will be caught by validation when Universe
+    # is initialised.
+    random_id = presets[-1][0] + 1
+    random_preset = Preset(random_id, 'Random',
+                           set(Point(randint(0, max_x), randint(0, max_y))
+                               for _ in range(randint(1, max_x * max_y))))
+    presets.append(random_preset)
+    if choice >= 0:
+        return presets[choice]
+    return presets
 
 
 def get_user_choice():
@@ -149,34 +166,6 @@ def cell_in_range(pad_size: Size, cell: Point) -> bool:
             (cell.y == pad_size.y - 1 and cell.x == pad_size.x - 1))
 
 
-def get_preset(choice: int = -1) -> Preset | list[Preset]:
-    """Return preset dictionary or specified preset when valid choice passed.
-    Examples from:
-    https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
-    """
-    max_x, max_y = GameOfLifeUI.display_pad_size()
-    max_x -= 1
-    max_y -= 1
-    presets = [
-        Preset(0, 'block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
-        Preset(1, 'beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
-                              Point(7, 12), Point(8, 10), Point(8, 11)}),
-        Preset(2, 'beacon', {Point(2, 2), Point(2, 3), Point(3, 2), Point(3, 3),
-                             Point(4, 4), Point(4, 5), Point(5, 4), Point(5, 5)}),
-        Preset(3, 'glider', {Point(2, 3), Point(3, 4), Point(4, 2), Point(4, 3), Point(4, 4)}),
-        Preset(4, 'R-pentomino', {Point(10, 51), Point(10, 52), Point(11, 50),
-                                  Point(11, 51), Point(12, 51)}),
-        # Random preset 'may' include bottom right corner cell, which
-        # is invalid, but will be caught by validation when Universe
-        # is initialised.
-        Preset(5, 'random', set(Point(randint(0, max_x), randint(0, max_y))
-                                for _ in range(randint(1, max_x * max_y))))
-    ]
-    if choice >= 0:
-        return presets[choice]
-    return presets
-
-
 def main(stdscr: curses.window, choice: int,
          refresh_rate: float) -> None:
     """Play the Game of Life."""
@@ -197,34 +186,3 @@ def main(stdscr: curses.window, choice: int,
         # Update to next generation.
         universe_old = universe.live_cells
         universe.live_cells = universe.update()
-
-
-if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        # No arguments were passed.
-        display_menu()
-        user_choice = get_user_choice()
-        partial_main = partial(main, choice=user_choice,
-                               refresh_rate=0.5)
-        curses.wrapper(partial_main)
-    else:
-        # Arguments were passed
-        parser = argparse.ArgumentParser(
-            description="Conway's Game of Life.",
-            epilog="Ctrl + C to quit.",
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('-p', '--preset', type=int, default=4,
-                            help='Select preset by number.')
-        parser.add_argument('-r', '--refresh_rate', type=float, default=0.5,
-                            help='Time per frame (seconds)')
-        arguments = parser.parse_args()
-        try:
-            preset = get_preset(arguments.preset)
-        except IndexError:
-            parser.print_help()
-            sys.exit(('\nError.\n'
-                      f'"{arguments.preset}" is out of range.\n'
-                      f'Select a preset from 0 to {len(get_preset())}'))
-        partial_main = partial(main, choice=arguments.preset,
-                               refresh_rate=arguments.refresh_rate)
-        curses.wrapper(partial_main)

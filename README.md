@@ -86,11 +86,11 @@ doesn’t include the curses module. A ported version called UniCurses is availa
 ### Running from the command line
 
 1. Open a terminal window, either full screen, or at least 40 lines x 100 characters.
-2. Navigate to the folder containing `gol.py`
+2. Navigate to the folder containing the `game_of_life` folder.
 3. Launch the application with:
 
 ```
-$ python3 -m gol
+$ python3 -m game_of_life
 ```
 
 4. When launched with no additional arguments you will see a menu showing the
@@ -121,7 +121,7 @@ To start the game with preset 2 and a refresh rate of 0.2, run the following
 command:
 
 ```
-$ python3 -m gol -p 2 -r 0.2
+$ python3 -m game_of_life -p 2 -r 0.2
 ```
 
 ## Acknowledgments
