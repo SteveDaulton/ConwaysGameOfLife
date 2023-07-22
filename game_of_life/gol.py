@@ -87,7 +87,7 @@ class GameOfLifeUI:
 
         Returns
         -------
-        Size:
+        Size
             A tuple containing the height and width of the Curses pad.
 
         Note
