@@ -31,7 +31,7 @@ def get_preset(choice: int = -1) -> Preset | list[Preset]:
     random_id = presets[-1][0] + 1
     random_preset = Preset(random_id, 'Random',
                            set(Point(randint(0, max_x), randint(0, max_y))
-                               for _ in range(randint(1, max_x * max_y))))
+                               for _ in range(randint(4, max_x * max_y))))
     presets.append(random_preset)
     if choice >= 0:
         return presets[choice]
@@ -61,24 +61,14 @@ class GameOfLifeUI:
 
         Parameters
         ----------
-            refresh_rate : float)
+            refresh_rate : float
                 The time per animation frame in seconds.
-
-        Attributes
-        ----------
-            pad : curses.window)
-                The curses pad used for rendering the Game of Life grid.
-            cell_char : str
-                The character representing a live cell in the grid.
-            refresh_rate : float)
-                The time per frame in seconds.
-            clock : float)
-                A timestamp of the current time, used to control the frame rate.
         """
         height, width = GameOfLifeUI._pad_size
         self.pad = curses.newpad(height, width)
         self.cell_char = ' '
         self.refresh_rate = refresh_rate
+        self.population: int = 0
         self.clock = perf_counter()
 
     @property
@@ -126,34 +116,41 @@ class GameOfLifeUI:
         curses.error
             If an error occurs while trying to add a live cell to the pad.
         """
+        self.population = len(live_cells)
         for y, x in live_cells:
+            # Adding characters outside the available window area raises a curses.error.
             try:
                 self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
             except curses.error:
-                # pad.addch() to bottom right corner throws a curses error.
-                if y == self.pad_size.y - 1 and x == self.pad_size.x - 1:
-                    pass
-                else:
-                    raise
+                pass
+            # Ensure that we have the current terminal size.
+            curses.update_lines_cols()
+            # Clear top line
+            self.pad.addstr(0, 0, self.cell_char * curses.COLS)
+            window_info: str = f' Height: {curses.LINES} Width: {curses.COLS} '
+            window_info_pos = min(curses.COLS, self.pad_size.x) - len(window_info)
+            self.pad.addstr(0, 0, f'Population: {self.population} ', curses.A_REVERSE)
+            self.pad.addstr(0, window_info_pos, window_info, curses.A_REVERSE)
 
     def refresh_pad(self) -> None:
         """Refresh the Curses pad.
 
-        Refresh the Curses pad at a controlled rate based on the `refresh_rate`
-        attribute. Calculates the elapsed time since the last refresh, and sleep if necessary
-        to achieve the desired frame rate. The pad's refresh area is calculated to fit the
+        Refresh the Curses pad at a controlled rate based on the `refresh_rate` attribute.
+
+        Notes
+        -----
+        Elapsed time since the last refresh is calculated to sleep, if necessary,
+        to achieve the desired frame rate.
+        The pad's refresh area is calculated to fit the
         visible window.
         """
         if 0.0 < (perf_counter() - self.clock) < self.refresh_rate:
             sleep_time = self.refresh_rate - (perf_counter() - self.clock)
             curses.napms(int(sleep_time * 1000))
         self.clock = perf_counter()
-
-        if curses.is_term_resized(curses.LINES, curses.COLS):
-            # If the terminal has been resized, recalculate y_max and x_max
-            curses.resizeterm(curses.LINES, curses.COLS)
-        y_max = min(curses.LINES - 1, self.pad_size.y)  # pylint: disable=maybe-no-member
-        x_max = min(curses.COLS - 1, self.pad_size.x)  # pylint: disable=maybe-no-member
+        # Now refresh the area of the pad that will fit in terminal window.
+        y_max = min(curses.LINES - 1, self.pad_size.y)
+        x_max = min(curses.COLS - 1, self.pad_size.x)
         self.pad.refresh(0, 0, 0, 0, y_max, x_max)
 
     def clear_cells(self, cells: set[Point]) -> None:
@@ -214,13 +211,11 @@ class Universe:
         creating a class instance.
         """
         if not Universe._initialized:
-            # 'choice' should already be validated.
+            # 'choice' should already be validated. Assert that the assignment is valid.
             assert isinstance((live_cells := get_preset(choice)), Preset),\
                 f'Invalid preset id {choice}'
-            # Cells must fit in pad, so validate before adding.
             self.display_size = GameOfLifeUI.display_pad_size()
-            self.live_cells = set(cell for cell in live_cells.cells
-                                  if cell_in_range(self.display_size, cell))
+            self.live_cells = set(cell for cell in live_cells.cells)
             Universe._initialized = True
 
     def update(self) -> set[Point]:
@@ -244,7 +239,7 @@ class Universe:
 
         - If a cell has 3 live neighbors, it will be alive in the next generation,
           regardless of its current state.
-        - If a cell has 2 live neighbors and it is currently alive, it will continue
+        - If a cell has 2 live neighbors, and it is currently alive, it will continue
           to be alive in the next generation.
 
         The set containing the new live cells for the next generation is returned.
@@ -260,8 +255,7 @@ class Universe:
             n_cells = neighbours(cell)
             live_count = sum(1 for neighbor in n_cells if neighbor in self.live_cells)
             if live_count == 3 or (live_count == 2 and cell in self.live_cells):
-                if cell_in_range(self.display_size, cell):
-                    new_cells.add(cell)
+                new_cells.add(cell)
         return new_cells
 
 
