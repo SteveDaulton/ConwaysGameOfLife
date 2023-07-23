@@ -1,11 +1,15 @@
 """Tests."""
 
+import argparse
 import pytest
+
 from game_of_life.gol import (Universe,
-                              cell_in_range,
                               display_menu,
                               get_preset)
-from game_of_life.custom_types import Point, Size,Preset
+from game_of_life.custom_types import (Point,
+                                       Size,
+                                       Preset)
+from game_of_life.__main__ import valid_preset_id
 
 
 def test_point():
@@ -70,23 +74,13 @@ def test_update():
     assert universe.update() == expected
 
 
-def test_cell_in_range():
-    """Test game_of_life.gol.cell_in_range()"""
-    assert cell_in_range(Size(100, 100), Point(99, 99)) is True
-    assert cell_in_range(Size(100, 100), Point(0, 0)) is True
-    assert cell_in_range(Size(100, 100), Point(-1, 0)) is False
-    assert cell_in_range(Size(100, 100), Point(1, -1)) is False
-    assert cell_in_range(Size(100, 100), Point(100, 0)) is False
-    assert cell_in_range(Size(100, 100), Point(0, 100)) is False
-
-
 def test_menu():
     """Test menu display."""
     display_menu()
 
 
 def test_get_preset():
-    """Test ame_of_life.gol.get_preset()"""
+    """Test game_of_life.gol.get_preset()"""
     presets = get_preset()
     # Case 1: presets is a list
     assert isinstance(presets, list)
@@ -95,3 +89,23 @@ def test_get_preset():
     for i, option in enumerate(presets):
         assert isinstance(option, Preset)
         assert i == option.idx
+
+
+def test_valid_preset_id():
+    """Test __main__.valid_preset."""
+    valid_indices = range(len(get_preset()))
+    # Case 1: Valid presets.
+    for idx in valid_indices:
+        assert valid_preset_id(f'{idx}') == idx
+    # Case 2: Invalid preset IDs below 0.
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_preset_id("-1")
+    assert "is not a valid preset ID" in str(exc_info.value)
+    # Case 3: Invalid preset IDs above maximum index.
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_preset_id(str(len(get_preset()) + 1))
+    assert "is not a valid preset ID" in str(exc_info.value)
+    # Case 4: Non-integer input
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_preset_id("not_an_integer")
+    assert "is not a valid integer" in str(exc_info.value)

@@ -8,7 +8,7 @@ import argparse
 import curses
 from functools import partial
 from game_of_life.gol import (
-    main,
+    play,
     display_menu,
     get_user_choice,
     get_preset)
@@ -70,7 +70,7 @@ def valid_preset_id(value: str) -> int:
     """
     try:
         int_value = int(value)
-        if 0 > int_value > len(get_preset()):
+        if int_value < 0 or int_value >= len(get_preset()):
             raise argparse.ArgumentTypeError(
                 f'{value} is not a valid preset ID.'
                 f'Select a preset from 0 to {len(get_preset())}')
@@ -82,26 +82,38 @@ def valid_preset_id(value: str) -> int:
             f'Select a preset from 0 to {len(get_preset())}.')
 
 
-if len(sys.argv) == 1:
-    # No arguments were passed.
-    display_menu()
-    user_choice = get_user_choice()
-    partial_main = partial(main, choice=user_choice,
-                           refresh_rate=DEFAULT_REFRESH_RATE)
-    curses.wrapper(partial_main)
-else:
-    # Arguments were passed
-    parser = argparse.ArgumentParser(
-        description="Conway's Game of Life.",
-        epilog="Ctrl + C to quit.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-p', '--preset', type=valid_preset_id,
-                        default=DEFAULT_PRESET,
-                        help='Select preset by number.')
-    parser.add_argument('-r', '--refresh_rate', type=valid_refresh_rate, default=0.5,
-                        help='Time per frame (seconds)')
-    arguments = parser.parse_args()
-    preset = get_preset(arguments.preset)
-    partial_main = partial(main, choice=arguments.preset,
-                           refresh_rate=arguments.refresh_rate)
-    curses.wrapper(partial_main)
+def main(arg_string: str = '') -> None:
+    """Entry point to game_of_life.
+
+    Parameters
+    ----------
+    arg_string : str
+
+    Notes
+    -----
+    """
+    if len(sys.argv) == 1:
+        # No arguments were passed.
+        display_menu()
+        user_choice = get_user_choice()
+        partial_main = partial(play, choice=user_choice,
+                               refresh_rate=DEFAULT_REFRESH_RATE)
+        curses.wrapper(partial_main)
+    else:
+        # Arguments were passed
+        parser = argparse.ArgumentParser(
+            description="Conway's Game of Life.",
+            epilog="Ctrl + C to quit.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-p', '--preset', type=valid_preset_id,
+                            default=DEFAULT_PRESET,
+                            help='Select preset by number.')
+        parser.add_argument('-r', '--refresh_rate', type=valid_refresh_rate, default=0.5,
+                            help='Time per frame (seconds)')
+        arguments = parser.parse_args(arg_string)
+        partial_main = partial(play, choice=arguments.preset,
+                               refresh_rate=arguments.refresh_rate)
+        curses.wrapper(partial_main)
+
+if __name__ == '__main__':
+    main()

@@ -286,7 +286,7 @@ def neighbours(point: Point) -> Generator[Point, None, None]:
     yield Point(y + 1, x + 1)
 
 
-def main(stdscr: curses.window, choice: int,
+def play(stdscr: curses.window, choice: int,
          refresh_rate: float) -> None:
     """Play the Game of Life."""
     curses.curs_set(0)  # Turn off blinking cursor.
