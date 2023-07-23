@@ -43,9 +43,9 @@ def get_user_choice():
     valid_indices = {option.idx for option in get_preset()}
     while True:
         try:
-            choice = int(input("Select initial state: "))
-            if choice in valid_indices:
-                return choice
+            selected_index = int(input("Select initial state: "))
+            if selected_index in valid_indices:
+                return selected_index
             print("Invalid choice. Please try again.")
         except IndexError:
             print("Invalid input. Please enter a number.")
