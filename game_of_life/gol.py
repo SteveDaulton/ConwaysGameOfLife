@@ -286,12 +286,6 @@ def neighbours(point: Point) -> Generator[Point, None, None]:
     yield Point(y + 1, x + 1)
 
 
-def cell_in_range(pad_size: Size, cell: Point) -> bool:
-    """Return True if cell is within range of pad."""
-    return (pad_size.y - 1 >= cell.y >= 0 and
-            pad_size.x - 1 >= cell.x >= 0)
-
-
 def main(stdscr: curses.window, choice: int,
          refresh_rate: float) -> None:
     """Play the Game of Life."""
