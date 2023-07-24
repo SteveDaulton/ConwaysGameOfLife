@@ -20,10 +20,11 @@ DEFAULT_PRESET = 4
 def valid_refresh_rate(value: str) -> float:
     """Validate refresh rate.
 
-    Attributes
+    Parameters
     ----------
-    value : float
-        The requested refresh rate: frame display duration in seconds.
+    value : str
+        The requested refresh rate / frame display duration in seconds.
+        A string representation of a positive number between `fastest` and `slowest`
 
     Returns
     -------
@@ -33,27 +34,30 @@ def valid_refresh_rate(value: str) -> float:
 
     Raises
     ------
-    ValueError
-        If value is outside valid range 0 to 10.
+    argparse.ArgumentTypeError
+        If value is invalid or outside valid range.
 
     Notes
     -----
-        Values greater than about 1 second are likely to be too slow.
+        Values greater than about 1 second are likely to be too slow for practical use.
     """
+    fastest = 0.0  # The shortest frame duration. Effectively disables waiting.
+    slowest = 10.0  # 10 seconds per frame!
     try:
         float_value = float(value)
         if not 0 <= float_value <= 10:
-            raise argparse.ArgumentTypeError("Refresh rate must be between 0 and 10.")
+            raise argparse.ArgumentTypeError(
+                f'Refresh rate must be between {fastest} and {slowest}.')
         return float_value
     except ValueError:
         # pylint: disable=W0707
-        raise argparse.ArgumentTypeError(f"{value} is not a valid float.")
+        raise argparse.ArgumentTypeError(f'{value} is not a valid float.')
 
 
 def valid_preset_id(value: str) -> int:
     """Validate preset ID.
 
-    Attributes
+    Parameters
     ----------
     value : str
         The requested preset ID number.
@@ -65,7 +69,7 @@ def valid_preset_id(value: str) -> int:
 
     Raises
     ------
-    ValueError
+    argparse.ArgumentTypeError
         If value is not a valid Preset ID.
     """
     try:
@@ -88,9 +92,13 @@ def main(arg_string: str = '') -> None:
     Parameters
     ----------
     arg_string : str
+        Default empty string.
+        Allows pytest to pass a sequence of string parameters to argparse.
 
     Notes
     -----
+    Use `if __name__ == '__main__':`, even though __main__.py is a valid
+    entry point without it, so that argparse code does not interfere with pytest.
     """
     if len(sys.argv) == 1:
         # No arguments were passed.
@@ -114,6 +122,7 @@ def main(arg_string: str = '') -> None:
         partial_main = partial(play, choice=arguments.preset,
                                refresh_rate=arguments.refresh_rate)
         curses.wrapper(partial_main)
+
 
 if __name__ == '__main__':
     main()

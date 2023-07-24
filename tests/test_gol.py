@@ -9,22 +9,21 @@ from game_of_life.gol import (Universe,
 from game_of_life.custom_types import (Point,
                                        Size,
                                        Preset)
-from game_of_life.__main__ import valid_preset_id
+from game_of_life.__main__ import (valid_preset_id,
+                                   valid_refresh_rate)
 
 
-def test_point():
+def test_point() -> None:
     """Test game_of_life.custom_types.Point"""
     # Case 1: Initialization and attribute access
     p = Point(2, 3)
     assert p.y == 2
     assert p.x == 3
-
     # Case 2: Immutable properties
     with pytest.raises(AttributeError):
         p.y = 5  # Trying to modify 'y' should raise an AttributeError
     with pytest.raises(AttributeError):
         p.x = 7  # Trying to modify 'x' should raise an AttributeError
-
     # Case 3: Comparison and equality
     p1 = Point(2, 3)
     p2 = Point(2, 3)
@@ -33,19 +32,17 @@ def test_point():
     assert p1 != p3  # p1 and p3 should not be equal
 
 
-def test_size():
+def test_size() -> None:
     """Test game_of_life.custom_types.Size"""
     # Case 1: Initialization and attribute access
     s = Size(2, 3)
     assert s.y == 2
     assert s.x == 3
-
     # Case 2: Immutable properties
     with pytest.raises(AttributeError):
         s.y = 5  # Trying to modify 'y' should raise an AttributeError
     with pytest.raises(AttributeError):
         s.x = 7  # Trying to modify 'x' should raise an AttributeError
-
     # Case 3: Comparison and equality
     s1 = Size(2, 3)
     s2 = Size(2, 3)
@@ -54,7 +51,7 @@ def test_size():
     assert s1 != s3  # p1 and p3 should not be equal
 
 
-def test_update():
+def test_update() -> None:
     """Test game_of_life.gol.update()"""
     universe = Universe(0)
     # Case 1: A single cell dies.
@@ -74,12 +71,12 @@ def test_update():
     assert universe.update() == expected
 
 
-def test_menu():
+def test_menu() -> None:
     """Test menu display."""
     display_menu()
 
 
-def test_get_preset():
+def test_get_preset() -> None:
     """Test game_of_life.gol.get_preset()"""
     presets = get_preset()
     # Case 1: presets is a list
@@ -91,7 +88,7 @@ def test_get_preset():
         assert i == option.idx
 
 
-def test_valid_preset_id():
+def test_valid_preset_id() -> None:
     """Test __main__.valid_preset."""
     valid_indices = range(len(get_preset()))
     # Case 1: Valid presets.
@@ -109,3 +106,30 @@ def test_valid_preset_id():
     with pytest.raises(argparse.ArgumentTypeError) as exc_info:
         valid_preset_id("not_an_integer")
     assert "is not a valid integer" in str(exc_info.value)
+
+
+def test_valid_refresh_rate() -> None:
+    """Test __main__.valid_refresh_rate.
+
+    Refresh rate is fastest when waiting before refresh is zero (disabled).
+    `slowest` is fairly arbitrary, but should match __main__.valid_refresh_rate().
+    """
+    fastest = 0
+    slowest = 10
+    # Case 1: Valid values.
+    delta = 1e-9
+    for val in range(fastest, 10 * slowest):
+        float_val = val / 10.0
+        # Being cautious about float precision, though probably not necessary.
+        assert valid_refresh_rate(f'{float_val}') - float_val < delta
+    # Case 2: Out of range values.
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_refresh_rate(f'{fastest - 0.01}')
+    assert 'Refresh rate must be between' in str(exc_info.value)
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_refresh_rate(f'{slowest + 0.01}')
+    assert 'Refresh rate must be between' in str(exc_info.value)
+    # Case 3: Non-number input
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        valid_refresh_rate('not a number')
+    assert 'is not a valid float.' in str(exc_info.value)
