@@ -86,14 +86,8 @@ def valid_preset_id(value: str) -> int:
             f'Select a preset from 0 to {len(get_preset())}.')
 
 
-def main(arg_string: str = '') -> None:
+def main() -> None:
     """Entry point to game_of_life.
-
-    Parameters
-    ----------
-    arg_string : str
-        Default empty string.
-        Allows pytest to pass a sequence of string parameters to argparse.
 
     Notes
     -----
@@ -118,7 +112,7 @@ def main(arg_string: str = '') -> None:
                             help='Select preset by number.')
         parser.add_argument('-r', '--refresh_rate', type=valid_refresh_rate, default=0.5,
                             help='Time per frame (seconds)')
-        arguments = parser.parse_args(arg_string)
+        arguments = parser.parse_args()
         partial_main = partial(play, choice=arguments.preset,
                                refresh_rate=arguments.refresh_rate)
         curses.wrapper(partial_main)
