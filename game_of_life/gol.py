@@ -12,9 +12,11 @@ from game_of_life.custom_types import (
     Preset)
 
 
-def display_menu():
+def display_menu() -> None:
     """Print preset choices."""
-    for setting in get_preset():
+    all_settings = get_preset()
+    assert isinstance(all_settings, list)
+    for setting in all_settings:
         print(f'{setting.idx}. {setting.name}')
     print()
 
