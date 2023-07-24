@@ -1,6 +1,9 @@
 """Tests."""
 
 import argparse
+from unittest.mock import patch
+from functools import partial
+
 import pytest
 
 from game_of_life.gol import (Universe,
@@ -10,7 +13,8 @@ from game_of_life.custom_types import (Point,
                                        Size,
                                        Preset)
 from game_of_life.__main__ import (valid_preset_id,
-                                   valid_refresh_rate)
+                                   valid_refresh_rate,
+                                   main)
 
 
 def test_point() -> None:
@@ -133,3 +137,28 @@ def test_valid_refresh_rate() -> None:
     with pytest.raises(argparse.ArgumentTypeError) as exc_info:
         valid_refresh_rate('not a number')
     assert 'is not a valid float.' in str(exc_info.value)
+
+
+def test_main(monkeypatch):
+    """Test __main__.main."""
+    # Monkeypatch sys.argv to simulate no command-line arguments.
+    monkeypatch.setattr('sys.argv', ['__main__.py'])
+
+    # Mock the functions that main calls and the input() function.
+    with patch('game_of_life.__main__.display_menu', return_value='1') as mock_display_menu, \
+         patch('game_of_life.__main__.get_user_choice', return_value='1') as mock_get_user_choice, \
+         patch('curses.wrapper') as mock_curses_wrapper, \
+         patch('game_of_life.__main__.play') as mock_play:
+
+        # Mock the gol.display_menu() function directly.
+        mock_display_menu.return_value = None
+
+        # Set the return_value of mock_play to a partial object.
+        mock_play.return_value = partial(mock_play, choice='1', refresh_rate=0.5)
+
+        main()
+        # Assert that the mocked functions were called with the expected parameters.
+        mock_display_menu.assert_called_once()
+        mock_get_user_choice.assert_called_once_with()
+        mock_curses_wrapper.assert_called_once_with(
+            mock_curses_wrapper.call_args[0][0])
