@@ -59,14 +59,14 @@ was limited to maybe 8 colours.
 Regular annoyances included:
 
 - Coordinates are upsidedown and backwards (y, x) from top left to bottom right.
-- Print outside of the window area => crash.
-- Refresh a pad outside of the window area => crash.
-- Resize the terminal while writing => crash.
+- Printing outside the window area => crash.
+- Refreshing a pad outside the window area => crash.
+- Resizeing the terminal while writing => crash.
 - Debugging: Who needs debugging!
 
-On the plus side, the entire app is only around 150 lines of code.
+On the plus side, the actual app code, including graphics, is only around 150 lines.
 
-Would I choose to use curses again? No way :)
+Would I choose to use curses again? No way, there are much better alternatives :)
 
 
 ## Installation:

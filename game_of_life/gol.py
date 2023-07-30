@@ -3,60 +3,18 @@
 import curses
 from typing import Generator, Type
 from time import perf_counter
-from random import randint
 
-from game_of_life.presets import PRESETS
 from game_of_life.custom_types import (
     Point,
     Size,
     Preset)
-
-
-def display_menu() -> None:
-    """Print preset choices."""
-    all_settings = get_preset()
-    assert isinstance(all_settings, list)
-    for setting in all_settings:
-        print(f'{setting.idx}. {setting.name}')
-    print()
-
-
-def get_preset(choice: int = -1) -> Preset | list[Preset]:
-    """Return preset dictionary, or specified preset when valid choice passed."""
-    presets = PRESETS
-    # Random preset 'may' include bottom right corner cell, which
-    # is invalid, but will be caught by validation when Universe
-    # is initialised.
-    max_x, max_y = GameOfLifeUI.display_pad_size()
-    max_x -= 1
-    max_y -= 1
-    random_id = presets[-1][0] + 1
-    random_preset = Preset(random_id, 'Random',
-                           set(Point(randint(0, max_x), randint(0, max_y))
-                               for _ in range(randint(4, max_x * max_y))))
-    presets.append(random_preset)
-    if choice >= 0:
-        return presets[choice]
-    return presets
-
-
-def get_user_choice():
-    """Return user choice from preset menu."""
-    valid_indices = {option.idx for option in get_preset()}
-    while True:
-        try:
-            selected_index = int(input("Select initial state: "))
-            if selected_index in valid_indices:
-                return selected_index
-            print("Invalid choice. Please try again.")
-        except IndexError:
-            print("Invalid input. Please enter a number.")
+from game_of_life.constants import PRESETS, random_preset, DEFAULTS
 
 
 class GameOfLifeUI:
     """Render GOL to terminal."""
 
-    _pad_size: Size = Size(y=40, x=100)
+    _pad_size: Size = DEFAULTS.universe_size
 
     def __init__(self, refresh_rate) -> None:
         """Initialize the GameOfLifeUI class.
@@ -66,7 +24,7 @@ class GameOfLifeUI:
             refresh_rate : float
                 The time per animation frame in seconds.
         """
-        height, width = GameOfLifeUI._pad_size
+        height, width = DEFAULTS.universe_size
         self.pad = curses.newpad(height, width)
         self.cell_char = ' '
         self.refresh_rate = refresh_rate
@@ -74,36 +32,21 @@ class GameOfLifeUI:
         self.clock = perf_counter()
 
     @property
-    def pad_size(self):
+    def pad_size(self) -> Size:
         """Get the size of the Curses pad.
 
         Returns
         -------
         Size
-            A tuple containing the height and width of the Curses pad.
+            A namedtuple containing the height and width of the Curses pad.
 
         Note
         ----
             The size of the Curses pad is defined by the class attribute `_pad_size`, which
-            represents the dimensions (height and width) of the pad. This property allows
-            external code to access the pad size without directly accessing the class attribute.
+            represents the dimensions (height and width) of the pad. Allows access the
+            pad size without directly accessing the protected class attribute.
         """
         return GameOfLifeUI._pad_size
-
-    @classmethod
-    def display_pad_size(cls) -> Size:
-        """Return the current pad size of the GameOfLifeUI.
-
-        Class method returns the current pad size (height and width) of the GameOfLifeUI.
-        _pad_size is a class attribute that determines the dimensions of the curses pad
-        used for rendering the Game of Life grid.
-
-        Returns
-        -------
-        Size
-            A Size object representing the height and width of the pad.
-        """
-        return cls._pad_size
 
     def populate(self, live_cells: set[Point]) -> None:
         """Populate the pad with live cells.
@@ -117,6 +60,8 @@ class GameOfLifeUI:
         ------
         curses.error
             If an error occurs while trying to add a live cell to the pad.
+            Such errors are expected and must pass silently.
+
         """
         self.population = len(live_cells)
         for y, x in live_cells:
@@ -125,27 +70,33 @@ class GameOfLifeUI:
                 self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
             except curses.error:
                 pass
-            # Ensure that we have the current terminal size.
-            curses.update_lines_cols()
-            # Clear top line
-            self.pad.addstr(0, 0, self.cell_char * curses.COLS)
-            window_info: str = f' Height: {curses.LINES} Width: {curses.COLS} '
-            window_info_pos = min(curses.COLS, self.pad_size.x) - len(window_info)
-            self.pad.addstr(0, 0, f'Population: {self.population} ', curses.A_REVERSE)
-            self.pad.addstr(0, window_info_pos, window_info, curses.A_REVERSE)
+
+    def write_info(self) -> None:
+        """Write info to top line of pad."""
+        # Ensure that we have the current terminal size.
+        curses.update_lines_cols()
+        window_info: str = f' Height: {curses.LINES} Width: {curses.COLS} '
+        window_info_pos = min(curses.COLS, self.pad_size.x) - len(window_info)
+        # Clear top line
+        self.pad.addstr(0, 0, self.cell_char * curses.COLS)
+        # Add info to top line of pad.
+        self.pad.addstr(0, 0, f'Population: {self.population} ', curses.A_REVERSE)
+        self.pad.addstr(0, window_info_pos, window_info, curses.A_REVERSE)
 
     def refresh_pad(self) -> None:
         """Refresh the Curses pad.
 
-        Refresh the Curses pad at a controlled rate based on the `refresh_rate` attribute.
+        The pad is refreshed at a controlled rate based on the `refresh_rate` attribute.
+        If the elapsed time since the last refresh is less than the `refresh_rate`,
+        the method will wait to achieve the desired frame rate.
+        The pad's refresh area is adjusted to fit the visible window.
 
         Notes
         -----
-        Elapsed time since the last refresh is calculated to sleep, if necessary,
-        to achieve the desired frame rate.
-        The pad's refresh area is calculated to fit the
-        visible window.
+        - Sleep time is calculated to maintain the desired frame rate.
+        - The pad's refresh area is limited to fit within the terminal window.
         """
+        # Wait if less than refresh_rate (seconds) since previous refresh.
         if 0.0 < (perf_counter() - self.clock) < self.refresh_rate:
             sleep_time = self.refresh_rate - (perf_counter() - self.clock)
             curses.napms(int(sleep_time * 1000))
@@ -213,10 +164,8 @@ class Universe:
         creating a class instance.
         """
         if not Universe._initialized:
-            # 'choice' should already be validated. Assert that the assignment is valid.
-            assert isinstance((live_cells := get_preset(choice)), Preset),\
-                f'Invalid preset id {choice}'
-            self.display_size = GameOfLifeUI.display_pad_size()
+            live_cells = get_one_preset(choice)
+            self.display_size = DEFAULTS.universe_size
             self.live_cells = set(cell for cell in live_cells.cells)
             Universe._initialized = True
 
@@ -288,8 +237,7 @@ def neighbours(point: Point) -> Generator[Point, None, None]:
     yield Point(y + 1, x + 1)
 
 
-def play(stdscr: curses.window, choice: int,
-         refresh_rate: float) -> None:
+def play(stdscr: curses.window, choice: int, refresh_rate: float) -> None:
     """Play the Game of Life."""
     curses.curs_set(0)  # Turn off blinking cursor.
     stdscr.clear()
@@ -303,8 +251,25 @@ def play(stdscr: curses.window, choice: int,
         ui.clear_cells(universe_old)
         # Add content to pad in reverse colours
         ui.populate(universe.live_cells)
+        # (Optional) write info to top line.
+        ui.write_info()
         # Render to screen.
         ui.refresh_pad()
         # Update to next generation.
         universe_old = universe.live_cells
         universe.live_cells = universe.update()
+
+
+def get_all_presets() -> list[Preset]:
+    """Return list of presets."""
+    presets = PRESETS
+    next_idx = presets[-1][0] + 1
+    rand_preset = random_preset(next_idx, DEFAULTS.universe_size)
+    presets.append(rand_preset)
+    return presets
+
+
+def get_one_preset(choice: int) -> Preset:
+    """Return specified preset when valid choice passed."""
+    presets = get_all_presets()
+    return presets[choice]

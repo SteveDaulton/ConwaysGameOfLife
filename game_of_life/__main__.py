@@ -7,83 +7,11 @@ import sys
 import argparse
 import curses
 from functools import partial
-from game_of_life.gol import (
-    play,
-    display_menu,
-    get_user_choice,
-    get_preset)
 
-DEFAULT_REFRESH_RATE = 0.5
-DEFAULT_PRESET = 4
-
-
-def valid_refresh_rate(value: str) -> float:
-    """Validate refresh rate.
-
-    Parameters
-    ----------
-    value : str
-        The requested refresh rate / frame display duration in seconds.
-        A string representation of a positive number between `fastest` and `slowest`
-
-    Returns
-    -------
-    float
-        The minimum length of time for an animation frame
-        to display (seconds).
-
-    Raises
-    ------
-    argparse.ArgumentTypeError
-        If value is invalid or outside valid range.
-
-    Notes
-    -----
-        Values greater than about 1 second are likely to be too slow for practical use.
-    """
-    fastest = 0.0  # The shortest frame duration. Effectively disables waiting.
-    slowest = 10.0  # 10 seconds per frame!
-    try:
-        float_value = float(value)
-        if not 0 <= float_value <= 10:
-            raise argparse.ArgumentTypeError(
-                f'Refresh rate must be between {fastest} and {slowest}.')
-        return float_value
-    except ValueError:
-        # pylint: disable=W0707
-        raise argparse.ArgumentTypeError(f'{value} is not a valid float.')
-
-
-def valid_preset_id(value: str) -> int:
-    """Validate preset ID.
-
-    Parameters
-    ----------
-    value : str
-        The requested preset ID number.
-
-    Returns
-    -------
-    int
-        The selected preset ID number.
-
-    Raises
-    ------
-    argparse.ArgumentTypeError
-        If value is not a valid Preset ID.
-    """
-    try:
-        int_value = int(value)
-        if int_value < 0 or int_value >= len(get_preset()):
-            raise argparse.ArgumentTypeError(
-                f'{value} is not a valid preset ID.'
-                f'Select a preset from 0 to {len(get_preset())}')
-        return int_value
-    except ValueError:
-        # pylint: disable=W0707
-        raise argparse.ArgumentTypeError(
-            f'{value} is not a valid integer.'
-            f'Select a preset from 0 to {len(get_preset())}.')
+from game_of_life.gol import play
+from game_of_life.menu import display_menu, get_user_choice
+from game_of_life.constants import DEFAULTS
+from game_of_life.validate import valid_refresh_rate, valid_preset_id
 
 
 def main() -> None:
@@ -99,7 +27,7 @@ def main() -> None:
         display_menu()
         user_choice = get_user_choice()
         partial_main = partial(play, choice=user_choice,
-                               refresh_rate=DEFAULT_REFRESH_RATE)
+                               refresh_rate=DEFAULTS.refresh_rate)
         curses.wrapper(partial_main)
     else:
         # Arguments were passed
@@ -108,9 +36,10 @@ def main() -> None:
             epilog="Ctrl + C to quit.",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('-p', '--preset', type=valid_preset_id,
-                            default=DEFAULT_PRESET,
+                            default=DEFAULTS.preset,
                             help='Select preset by number.')
-        parser.add_argument('-r', '--refresh_rate', type=valid_refresh_rate, default=0.5,
+        parser.add_argument('-r', '--refresh_rate',
+                            type=valid_refresh_rate, default=DEFAULTS.refresh_rate,
                             help='Time per frame (seconds)')
         arguments = parser.parse_args()
         partial_main = partial(play, choice=arguments.preset,
