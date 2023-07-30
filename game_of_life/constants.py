@@ -62,6 +62,6 @@ def random_preset(random_id, pad_size):
     return rand_preset
 
 
-DEFAULTS: Final[Defaults] = Defaults(universe_size=Size(y=80, x=40),
+DEFAULTS: Final[Defaults] = Defaults(universe_size=Size(y=40, x=80),
                                      preset=4,
                                      refresh_rate=0.5)
