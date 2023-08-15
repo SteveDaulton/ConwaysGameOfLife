@@ -1,6 +1,5 @@
 """Tests for gol.py."""
 
-import argparse
 
 import pytest
 
@@ -59,7 +58,7 @@ def test_valid_preset_id() -> None:
         valid_preset_id_string(str(preset_id_range() + 1))
     assert "is not a valid preset ID" in str(exc_info.value)
     # Case 4: Non-integer input
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_preset_id_string("not_an_integer")
     assert "not_an_integer" in str(exc_info.value)
 
@@ -79,13 +78,13 @@ def test_valid_refresh_rate() -> None:
         # Being cautious about float precision, though probably not necessary.
         assert valid_refresh_rate_string(f'{float_val}') - float_val < delta
     # Case 2: Out of range values.
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_refresh_rate_string(f'{fastest - 0.01}')
     assert 'Refresh rate must be between' in str(exc_info.value)
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_refresh_rate_string(f'{slowest + 0.01}')
     assert 'Refresh rate must be between' in str(exc_info.value)
     # Case 3: Non-number input
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_refresh_rate_string('not a number')
-    assert 'is not a valid float.' in str(exc_info.value)
+    assert 'not a number' in str(exc_info.value)
