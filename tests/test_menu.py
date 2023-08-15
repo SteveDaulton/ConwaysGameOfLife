@@ -26,12 +26,22 @@ def test_preset_menu_with_fixture(capsys, test_settings, expected_output) -> Non
     and will be tested separately.
     """
     with (patch('game_of_life.menu.get_all_presets') as mock_get_all_presets,
-          patch('game_of_life.menu.get_user_preset_choice') as _):
+          patch('game_of_life.menu.get_user_preset_choice')):
         mock_get_all_presets.return_value = test_settings
         preset_menu()
         captured = capsys.readouterr()
         assert captured.err == ''
         assert captured.out.strip() == expected_output
+
+
+def test_preset_menu_return() -> None:
+    """Check return values from menu.preset_menu."""
+    with (patch('game_of_life.menu.get_user_preset_choice') as mock_user_choice,
+          patch('builtins.print')):  # No need to print.
+        # Test values from 0 to an arbitrary number > number of presets.
+        for val in range(100):
+            mock_user_choice.return_value = val
+            assert preset_menu() == mock_user_choice.return_value
 
 
 def test_preset_menu_with_presets(capsys) -> None:
