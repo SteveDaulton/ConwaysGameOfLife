@@ -9,7 +9,7 @@ import curses
 from functools import partial
 
 from game_of_life.gol import play
-from game_of_life.menu import display_menu, get_user_choice
+from game_of_life.menu import preset_menu, refresh_rate_menu
 from game_of_life.constants import DEFAULTS
 from game_of_life.validate import valid_refresh_rate_string, valid_preset_id_string
 
@@ -24,11 +24,10 @@ def main() -> None:
     """
     if len(sys.argv) == 1:
         # No arguments were passed.
-        display_menu()
-        user_choice = get_user_choice()
-        # TODO: Add menu for refresh rate.
-        partial_main = partial(play, choice=user_choice,
-                               refresh_rate=DEFAULTS.refresh_rate)
+        _preset_choice = preset_menu()
+        _refresh_rate = refresh_rate_menu()
+        partial_main = partial(play, choice=_preset_choice,
+                               refresh_rate=_refresh_rate)
         curses.wrapper(partial_main)
     else:
         # Arguments were passed
