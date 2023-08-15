@@ -8,26 +8,121 @@ from game_of_life.custom_types import (
     Point,
     Size,
     Preset)
-from game_of_life.constants import PRESETS, random_preset, DEFAULTS
+from game_of_life.constants import (
+    PRESETS,
+    random_preset,
+    DEFAULTS)
+
+
+class Universe:
+    """Singleton class for Universe.
+
+    The Game of Life occurs within the context of a single 'Universe'.
+    This class manages persistent state of the Universe.
+    """
+
+    _instance = None
+    _initialized = False
+
+    def __new__(cls: Type['Universe'], *args, **kwargs) -> 'Universe':
+        """Override the creation of new instances for the Singleton pattern.
+
+        Enforces the Singleton pattern by allowing only one instance of the
+        Universe class to exist at any time.
+
+        Arguments
+        ---------
+            cls : Type['Universe']
+                The class itself.
+
+        Returns
+        -------
+        'Universe'
+            The created instance or the existing instance if it already exists.
+        """
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self) -> None:
+        """Initialize an empty Universe."""
+        if not Universe._initialized:
+            self.display_size = DEFAULTS.universe_size
+            self._refresh_rate = DEFAULTS.refresh_rate
+            # Universe initialised without any cells.
+            self.live_cells: set[Point] = set(())
+            Universe._initialized = True
+
+    @property
+    def refresh_rate(self):
+        """refresh_rate getter."""
+        return self._refresh_rate
+
+    @refresh_rate.setter
+    def refresh_rate(self, rate):
+        """refresh_rate setter."""
+        self._refresh_rate = rate
+
+    def init_cells(self, choice: int = DEFAULTS.preset):
+        """Initialise cell population."""
+        preset = get_one_preset(choice)
+        self.live_cells = set(cell for cell in preset.cells)
+
+    def update(self) -> set[Point]:
+        """Update the Universe state according to the rules of Conway's Game of Life.
+
+        Calculate and return the next generation of live cells based on the current
+        state of the Universe and the rules of Conway's Game of Life.
+
+        Returns
+        -------
+        set[Point]
+            A set containing the new live cells that satisfy the rules and are
+            within the display range.
+
+        Notes
+        -----
+        The method considers the current live cells and their neighboring cells.
+        It then calculates the number of live neighbors for each cell and applies
+        the rules of the game to determine if the cell should be alive in the next
+        generation.
+
+        - If a cell has 3 live neighbors, it will be alive in the next generation,
+          regardless of its current state.
+        - If a cell has 2 live neighbors, and it is currently alive, it will continue
+          to be alive in the next generation.
+
+        The set containing the new live cells for the next generation is returned.
+        """
+        new_cells = set()
+        # We only need to consider cells that are either alive
+        # or neighbouring a live cell.
+        cell_set = set(self.live_cells)
+        for cell in self.live_cells:
+            cell_set.update(neighbours(cell))
+        # Return the next generation.
+        for cell in cell_set:
+            n_cells = neighbours(cell)
+            live_count = sum(1 for neighbor in n_cells if neighbor in self.live_cells)
+            if live_count == 3 or (live_count == 2 and cell in self.live_cells):
+                new_cells.add(cell)
+        return new_cells
 
 
 class GameOfLifeUI:
     """Render GOL to terminal."""
 
-    _pad_size: Size = DEFAULTS.universe_size
-
-    def __init__(self, refresh_rate) -> None:
+    def __init__(self) -> None:
         """Initialize the GameOfLifeUI class.
 
-        Parameters
-        ----------
-            refresh_rate : float
-                The time per animation frame in seconds.
+        GameOfLifeUI handles graphic display of game.
         """
-        height, width = DEFAULTS.universe_size
+        self._universe = Universe()  # Singleton instance
+        self._pad_size = self._universe.display_size
+        height, width = self._pad_size
         self.pad = curses.newpad(height, width)
         self.cell_char = ' '
-        self.refresh_rate = refresh_rate
+        self.refresh_rate = self._universe.refresh_rate
         self.population: int = 0
         self.clock = perf_counter()
 
@@ -46,7 +141,7 @@ class GameOfLifeUI:
             represents the dimensions (height and width) of the pad. Allows access the
             pad size without directly accessing the protected class attribute.
         """
-        return GameOfLifeUI._pad_size
+        return self._pad_size
 
     def populate(self, live_cells: set[Point]) -> None:
         """Populate the pad with live cells.
@@ -58,7 +153,7 @@ class GameOfLifeUI:
 
         Raises
         ------
-        curses.error
+        'curses.error'
             If an error occurs while trying to add a live cell to the pad.
             Such errors are expected and must pass silently.
 
@@ -116,100 +211,6 @@ class GameOfLifeUI:
                 pass
 
 
-class Universe:
-    """Singleton class for Universe."""
-
-    _instance = None
-    _initialized = False
-
-    def __new__(cls: Type['Universe'], *args, **kwargs) -> 'Universe':
-        """Override the creation of new instances for the Singleton pattern.
-
-        Enforces the Singleton pattern by allowing only one instance of the
-        Universe class to exist at any time.
-
-        Arguments
-        ---------
-            cls : Type['Universe']
-                The class itself.
-
-        Returns
-        -------
-        'Universe'
-            The created instance or the existing instance if it already exists.
-        """
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self, choice: int) -> None:
-        """Initialize the Universe with the chosen preset.
-
-        Parameters
-        ----------
-        choice : int
-            The index of the preset to use.
-
-        Raises
-        ------
-        AssertionError
-            If the chosen preset is invalid.
-
-        Notes
-        -----
-        Initializes the Universe with the selected preset using `get_preset`,
-        and ensures that the cells fit within the pad before adding them to the Universe.
-
-        An invalid 'choice' will raise an AssertionError, so should be validated before
-        creating a class instance.
-        """
-        if not Universe._initialized:
-            live_cells = get_one_preset(choice)
-            self.display_size = DEFAULTS.universe_size
-            self.live_cells = set(cell for cell in live_cells.cells)
-            Universe._initialized = True
-
-    def update(self) -> set[Point]:
-        """Update the Universe state according to the rules of Conway's Game of Life.
-
-        Calculate and return the next generation of live cells based on the current
-        state of the Universe and the rules of Conway's Game of Life.
-
-        Returns
-        -------
-        set[Point]
-            A set containing the new live cells that satisfy the rules and are
-            within the display range.
-
-        Notes
-        -----
-        The method considers the current live cells and their neighboring cells.
-        It then calculates the number of live neighbors for each cell and applies
-        the rules of the game to determine if the cell should be alive in the next
-        generation.
-
-        - If a cell has 3 live neighbors, it will be alive in the next generation,
-          regardless of its current state.
-        - If a cell has 2 live neighbors, and it is currently alive, it will continue
-          to be alive in the next generation.
-
-        The set containing the new live cells for the next generation is returned.
-        """
-        new_cells = set()
-        # We only need to consider cells that are either alive
-        # or neighbouring a live cell.
-        cell_set = set(self.live_cells)
-        for cell in self.live_cells:
-            cell_set.update(neighbours(cell))
-        # Return the next generation.
-        for cell in cell_set:
-            n_cells = neighbours(cell)
-            live_count = sum(1 for neighbor in n_cells if neighbor in self.live_cells)
-            if live_count == 3 or (live_count == 2 and cell in self.live_cells):
-                new_cells.add(cell)
-        return new_cells
-
-
 def neighbours(point: Point) -> Generator[Point, None, None]:
     """Yield each coordinate around point.
 
@@ -241,9 +242,13 @@ def play(stdscr: curses.window, choice: int, refresh_rate: float) -> None:
     """Play the Game of Life."""
     curses.curs_set(0)  # Turn off blinking cursor.
     stdscr.clear()
-
-    ui = GameOfLifeUI(refresh_rate)
-    universe = Universe(choice)
+    # Initialise Universe instance.
+    universe = Universe()
+    # Initialise starting  population.
+    universe.init_cells(choice)
+    universe.refresh_rate = refresh_rate
+    # Initialise game interface.
+    ui = GameOfLifeUI()
     universe_old: set[Point] = set()
 
     while True:

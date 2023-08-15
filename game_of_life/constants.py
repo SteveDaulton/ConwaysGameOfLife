@@ -65,3 +65,8 @@ def random_preset(random_id, pad_size):
 DEFAULTS: Final[Defaults] = Defaults(universe_size=Size(y=40, x=80),
                                      preset=4,
                                      refresh_rate=0.5)
+
+# Time per frame greater than about 1 second are likely to be too slow for practical use.
+# Zero frame duration effectively disables waiting.
+# 10 seconds per frame is generous.
+REFRESH_RATE_RANGE: Final[dict] = {'min': 0, 'max': 10}

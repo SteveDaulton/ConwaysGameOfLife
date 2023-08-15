@@ -11,7 +11,7 @@ from functools import partial
 from game_of_life.gol import play
 from game_of_life.menu import display_menu, get_user_choice
 from game_of_life.constants import DEFAULTS
-from game_of_life.validate import valid_refresh_rate, valid_preset_id
+from game_of_life.validate import valid_refresh_rate_string, valid_preset_id_string
 
 
 def main() -> None:
@@ -26,6 +26,7 @@ def main() -> None:
         # No arguments were passed.
         display_menu()
         user_choice = get_user_choice()
+        # TODO: Add menu for refresh rate.
         partial_main = partial(play, choice=user_choice,
                                refresh_rate=DEFAULTS.refresh_rate)
         curses.wrapper(partial_main)
@@ -35,11 +36,11 @@ def main() -> None:
             description="Conway's Game of Life.",
             epilog="Ctrl + C to quit.",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('-p', '--preset', type=valid_preset_id,
+        parser.add_argument('-p', '--preset', type=valid_preset_id_string,
                             default=DEFAULTS.preset,
                             help='Select preset by number.')
         parser.add_argument('-r', '--refresh_rate',
-                            type=valid_refresh_rate, default=DEFAULTS.refresh_rate,
+                            type=valid_refresh_rate_string, default=DEFAULTS.refresh_rate,
                             help='Time per frame (seconds)')
         arguments = parser.parse_args()
         partial_main = partial(play, choice=arguments.preset,
