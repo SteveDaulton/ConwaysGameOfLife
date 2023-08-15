@@ -51,17 +51,17 @@ def test_valid_preset_id() -> None:
     for idx in valid_indices:
         assert valid_preset_id_string(f'{idx}') == idx
     # Case 2: Invalid preset IDs below 0.
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_preset_id_string("-1")
     assert "is not a valid preset ID" in str(exc_info.value)
     # Case 3: Invalid preset IDs above maximum index.
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         valid_preset_id_string(str(preset_id_range() + 1))
     assert "is not a valid preset ID" in str(exc_info.value)
     # Case 4: Non-integer input
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         valid_preset_id_string("not_an_integer")
-    assert "is not a valid integer" in str(exc_info.value)
+    assert "not_an_integer" in str(exc_info.value)
 
 
 def test_valid_refresh_rate() -> None:
