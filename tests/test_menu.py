@@ -1,11 +1,10 @@
 """Tests for menu.py"""
 
 from unittest.mock import patch
-
 import pytest
 
 from game_of_life.custom_types import Preset
-from game_of_life.menu import preset_menu
+from game_of_life.menu import preset_menu, get_user_preset_choice
 
 
 @pytest.mark.parametrize(
@@ -76,3 +75,56 @@ def test_preset_menu_with_presets(capsys) -> None:
                 assert idx_str[-1] == '.'
             except ValueError as exc:
                 raise AssertionError(f"Unexpected format in line: '{line}'") from exc
+
+
+def test_user_preset_choice(capsys) -> None:
+    """Test menu.get_user_preset_choice.
+
+    Notes
+    -----
+    get_user_preset_choice() returns value input by user when input
+    is valid.
+
+    When user input is invalid, get_user_preset_choice() prompts for
+    another input, and continues to do so until it receives a valid
+    input.
+
+    A valid input is an integer-string that matches a Preset ID.
+    """
+    mock_get_all_presets = [Preset(0, 'First', set())]
+
+    def side_effects():
+        # End each test case with a valid input.
+        input_vals = [
+            '0',  # Valid
+            '1', '0',  # Out of range
+            '1.5', '0',  # Not an int
+            'not a number', '0']
+        for val in input_vals:
+            yield val
+
+    with (patch('builtins.input', side_effect=side_effects()),
+          patch('game_of_life.menu.get_all_presets', return_value=mock_get_all_presets)):
+        # Valid input returns the input int.
+        val = get_user_preset_choice()
+        captured = capsys.readouterr()
+        assert captured.out == ''
+        assert val == 0
+
+        # Out of range int prints error.
+        get_user_preset_choice()
+        captured = capsys.readouterr()
+        assert captured.out
+        assert "Invalid choice. Please try again." in captured.out
+
+        # Non-integer input prints an error.
+        get_user_preset_choice()
+        captured = capsys.readouterr()
+        assert captured.out
+        assert "Invalid input. Please enter a number." in captured.out
+
+        # Non-numeric input prints an error.
+        get_user_preset_choice()
+        captured = capsys.readouterr()
+        assert captured.out
+        assert "Invalid input. Please enter a number." in captured.out
