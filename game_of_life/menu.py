@@ -44,7 +44,6 @@ def refresh_rate_menu() -> float:
     Valid values are in the range:
     {fastest} : As fast as possible.
     {slowest} : Each frame displayed for {slowest} seconds.
-    
     """)
     return get_user_refresh_rate()
 

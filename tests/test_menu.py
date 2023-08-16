@@ -4,7 +4,10 @@ from unittest.mock import patch
 import pytest
 
 from game_of_life.custom_types import Preset
-from game_of_life.menu import preset_menu, get_user_preset_choice
+from game_of_life.menu import (preset_menu,
+                               get_user_preset_choice,
+                               refresh_rate_menu,
+                               get_user_refresh_rate)
 
 
 @pytest.mark.parametrize(
@@ -128,3 +131,54 @@ def test_user_preset_choice(capsys) -> None:
         captured = capsys.readouterr()
         assert captured.out
         assert "Invalid input. Please enter a number." in captured.out
+
+
+def test_refresh_rate_menu() -> None:
+    """Test menu.refresh_rate_menu.
+
+    This only tests that the supplied input is returned.
+    """
+    with (patch('game_of_life.menu.REFRESH_RATE_RANGE', new = {'min': 0, 'max': 10}),
+          patch('game_of_life.menu.get_user_refresh_rate') as mock_user_refresh_rate):
+        mock_user_refresh_rate.return_value = 1
+        assert refresh_rate_menu() == mock_user_refresh_rate.return_value
+
+def test_user_refresh_rate(capsys) -> None:
+    """Test menu.get_user_refresh_rate.
+
+    Notes
+    -----
+    get_user_refresh_rate() returns value input by user when input
+    is valid.
+
+    When user input is invalid, get_user_refresh_rate() prompts for
+    another input, and continues to do so until it receives a valid
+    input.
+
+    A valid input is an float-string within REFRESH_RATE_RANGE.
+    """
+    refresh_rate_range = {'min': 0, 'max': 10}
+
+    def side_effects():
+        """User input values.
+
+        Only the final value is valid.
+        """
+        input_vals = [
+            refresh_rate_range['min'] - 1,
+            refresh_rate_range['min'] - 1.1,
+            refresh_rate_range['max'] + 1,
+            refresh_rate_range['max'] + 1.1,
+            'not a number',
+            (refresh_rate_range['min'] + refresh_rate_range['max']) / 2.0
+        ]
+        for val in input_vals:
+            yield str(val)
+
+    with (patch('builtins.input', side_effect=side_effects()),
+          patch('game_of_life.menu.REFRESH_RATE_RANGE', new=refresh_rate_range)):
+        val = get_user_refresh_rate()
+        # Invalid input should cause user prompts to be printed.
+        captured = capsys.readouterr()
+        assert captured.out
+        assert val == (refresh_rate_range['min'] + refresh_rate_range['max']) / 2.0
