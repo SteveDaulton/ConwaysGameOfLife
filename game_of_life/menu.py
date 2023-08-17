@@ -1,7 +1,7 @@
 """Menu system for  Game of Life."""
 
 from game_of_life.gol import get_all_presets
-from game_of_life.constants import REFRESH_RATE_RANGE
+from game_of_life.constants import REFRESH_RATE_RANGE, DEFAULTS
 
 
 def preset_menu() -> int:
@@ -23,8 +23,11 @@ def get_user_preset_choice() -> int:
     """Return user choice from preset menu."""
     valid_indices = {option.idx for option in get_all_presets()}
     while True:
+        user_input: str = input(f'Select initial state (default {DEFAULTS.preset}): ')
+        if user_input == "":
+            return DEFAULTS.preset
         try:
-            selected_index = int(input("Select initial state: "))
+            selected_index = int(user_input)
         except ValueError:
             print("Invalid input. Please enter a number.")
             continue
@@ -52,8 +55,11 @@ def get_user_refresh_rate() -> float:
     """Return user choice from refresh-rate menu."""
     fastest, slowest = REFRESH_RATE_RANGE.values()
     while True:
+        user_input: str = input("Time per frame (default 0.5 seconds): ")
+        if user_input == "":
+            return DEFAULTS.refresh_rate
         try:
-            refresh_rate = float(input("Time per frame (default 0.5 seconds): "))
+            refresh_rate = float(user_input)
         except ValueError:
             print("Invalid input. Please enter a number.")
             continue
