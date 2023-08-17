@@ -1,7 +1,9 @@
 """Tests for gol.py."""
 
+from unittest.mock import patch
 
 import pytest
+
 
 from game_of_life.gol import Universe, get_all_presets
 from game_of_life.custom_types import Point, Preset, Size
@@ -121,3 +123,45 @@ def test_valid_refresh_rate() -> None:
     with pytest.raises(ValueError) as exc_info:
         valid_refresh_rate_string('not a number')
     assert 'not a number' in str(exc_info.value)
+
+
+def test_init_cells():
+    """Test init_cells."""
+    universe = Universe()
+    mock_presets = [Preset(0, 'first', {Point(0, 0), Point(1, 1)}),
+                    Preset(1, 'second', {Point(0, 0)})]
+    def mock_get_one_preset(choice):
+        """Mock of get_one_preset"""
+        return mock_presets[choice]
+
+    with patch('game_of_life.gol.get_one_preset', side_effect=mock_get_one_preset):
+        # Case 1: Valid choice.
+        choice = 0
+        universe.init_cells(choice=choice)
+        assert universe.live_cells == mock_presets[choice].cells
+
+        # Case 2: Another valid choice.
+        choice = 1
+        universe.init_cells(choice=choice)
+        assert universe.live_cells == mock_presets[choice].cells
+        previous_state = universe.live_cells
+
+        # Invalid choices leave the Universe unchanged.
+
+        # Case 3: Out of range choice
+        choice = 20
+        with pytest.raises(Exception):
+            universe.init_cells(choice=choice)
+        assert universe.live_cells == previous_state
+
+        # Case 4: Invalid choice type.
+        choice = 'not a number'
+        with pytest.raises(Exception):
+            universe.init_cells(choice=choice)
+        assert universe.live_cells == previous_state
+
+        # Case 5: Non-integer choice.
+        choice = 1.5
+        with pytest.raises(Exception):
+            universe.init_cells(choice=choice)
+        assert universe.live_cells == previous_state

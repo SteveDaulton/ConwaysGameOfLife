@@ -63,8 +63,14 @@ class Universe:
         """refresh_rate setter."""
         self._refresh_rate = rate
 
-    def init_cells(self, choice: int = DEFAULTS.preset):
-        """Initialise cell population."""
+    def init_cells(self, choice: int = DEFAULTS.preset) -> None:
+        """Initialise cell population.
+
+        See Also
+        --------
+        get_one_preset : Retrieves a preset.
+
+        """
         preset = get_one_preset(choice)
         self.live_cells = set(cell for cell in preset.cells)
 
@@ -275,6 +281,15 @@ def get_all_presets() -> list[Preset]:
 
 
 def get_one_preset(choice: int) -> Preset:
-    """Return specified preset when valid choice passed."""
+    """Return specified preset when valid choice passed.
+
+    Raises
+    ------
+    IndexError
+        When choice is not in presets.
+
+    TypeError
+        When choice is not an integer.
+    """
     presets = get_all_presets()
     return presets[choice]
