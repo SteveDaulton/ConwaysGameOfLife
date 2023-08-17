@@ -4,11 +4,44 @@
 import pytest
 
 from game_of_life.gol import Universe, get_all_presets
-from game_of_life.custom_types import Point, Preset
+from game_of_life.custom_types import Point, Preset, Size
 from game_of_life.validate import (
     valid_refresh_rate_string,
     valid_preset_id_string,
     preset_id_range)
+from game_of_life.constants import DEFAULTS
+
+
+def test_singleton() -> None:
+    """Test that Universe is singleton."""
+    u1 = Universe()
+    u2 = Universe()
+    assert u1 is u2
+
+
+@pytest.mark.parametrize('attribute, expected_type', [
+    ('_initialized', bool),
+    ('display_size', Size),
+    ('_refresh_rate', float),
+    ('live_cells', set)])
+def test_universe_attribute_types(attribute, expected_type) -> None:
+    """Test Universe attribute types."""
+    universe = Universe()
+    attr = getattr(universe, attribute)
+    assert isinstance(attr, expected_type)
+
+
+@pytest.mark.parametrize('attribute, expected_val', [
+    ('_initialized', True),
+    ('display_size', DEFAULTS.universe_size),
+    ('_refresh_rate', DEFAULTS.refresh_rate),
+    ('live_cells', set())
+])
+def test_universe_attribute_values(attribute, expected_val):
+    """Test Universe attribute values."""
+    universe = Universe()
+    attr = getattr(universe, attribute)
+    assert attr == expected_val
 
 
 def test_update() -> None:

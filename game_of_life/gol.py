@@ -50,7 +50,7 @@ class Universe:
             self.display_size = DEFAULTS.universe_size
             self._refresh_rate = DEFAULTS.refresh_rate
             # Universe initialised without any cells.
-            self.live_cells: set[Point] = set(())
+            self.live_cells: set[Point] = set()
             Universe._initialized = True
 
     @property
