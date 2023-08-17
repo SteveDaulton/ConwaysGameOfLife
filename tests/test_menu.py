@@ -8,6 +8,7 @@ from game_of_life.menu import (preset_menu,
                                get_user_preset_choice,
                                refresh_rate_menu,
                                get_user_refresh_rate)
+from game_of_life.custom_types import Defaults, Size
 
 
 @pytest.mark.parametrize(
@@ -85,8 +86,8 @@ def test_user_preset_choice(capsys) -> None:
 
     Notes
     -----
-    get_user_preset_choice() returns value input by user when input
-    is valid.
+    get_user_preset_choice() returns the value input by user when the
+    input is valid, or returns the default when input is an empty string.
 
     When user input is invalid, get_user_preset_choice() prompts for
     another input, and continues to do so until it receives a valid
@@ -94,43 +95,32 @@ def test_user_preset_choice(capsys) -> None:
 
     A valid input is an integer-string that matches a Preset ID.
     """
-    mock_get_all_presets = [Preset(0, 'First', set())]
+    mock_get_all_presets = [Preset(0, 'First', set()),
+                            Preset(1, 'Second', set())]
 
-    def side_effects():
-        # End each test case with a valid input.
-        input_vals = [
-            '0',  # Valid
-            '1', '0',  # Out of range
-            '1.5', '0',  # Not an int
-            'not a number', '0']
-        for val in input_vals:
-            yield val
+    defaults = Defaults(universe_size=Size(0, 0), preset=0, refresh_rate=0.5)
+    range_error = 'Invalid choice. Please try again.'
+    type_error = 'Invalid input. Please enter a number.'
+    no_error = ''
 
-    with (patch('builtins.input', side_effect=side_effects()),
-          patch('game_of_life.menu.get_all_presets', return_value=mock_get_all_presets)):
-        # Valid input returns the input int.
-        val = get_user_preset_choice()
-        captured = capsys.readouterr()
-        assert captured.out == ''
-        assert val == 0
-
-        # Out of range int prints error.
-        get_user_preset_choice()
-        captured = capsys.readouterr()
-        assert captured.out
-        assert "Invalid choice. Please try again." in captured.out
-
-        # Non-integer input prints an error.
-        get_user_preset_choice()
-        captured = capsys.readouterr()
-        assert captured.out
-        assert "Invalid input. Please enter a number." in captured.out
-
-        # Non-numeric input prints an error.
-        get_user_preset_choice()
-        captured = capsys.readouterr()
-        assert captured.out
-        assert "Invalid input. Please enter a number." in captured.out
+    test_cases = [  # ('input', 'error')
+        ([''], [no_error], defaults.preset),  # Default.
+        (['0'], [no_error], 0),  # Valid input.
+        (['1'], [no_error], 1),  # Valid input.
+        (['20', ''], [range_error], defaults.preset),  # Out of range.
+        (['1.5', ''], [type_error], defaults.preset),  # Non-integer.
+        (['not a number', ''], [type_error], defaults.preset),  # Non-numeric.
+        (['w', '-6', '20', '1.5', '1'], [type_error, range_error], 1),  # Multiple errors.
+    ]
+    for inputs, errors, rtn in test_cases:
+        with (patch('builtins.input', side_effect=inputs),
+              patch('game_of_life.menu.get_all_presets', return_value=mock_get_all_presets),
+              patch('game_of_life.menu.DEFAULTS', new=defaults)):
+            val = get_user_preset_choice()
+            captured = capsys.readouterr()
+            for err in errors:
+                assert err in captured.out
+            assert val == rtn
 
 
 def test_refresh_rate_menu() -> None:
@@ -138,10 +128,11 @@ def test_refresh_rate_menu() -> None:
 
     This only tests that the supplied input is returned.
     """
-    with (patch('game_of_life.menu.REFRESH_RATE_RANGE', new = {'min': 0, 'max': 10}),
+    with (patch('game_of_life.menu.REFRESH_RATE_RANGE', new={'min': 0, 'max': 10}),
           patch('game_of_life.menu.get_user_refresh_rate') as mock_user_refresh_rate):
         mock_user_refresh_rate.return_value = 1
         assert refresh_rate_menu() == mock_user_refresh_rate.return_value
+
 
 def test_user_refresh_rate(capsys) -> None:
     """Test menu.get_user_refresh_rate.
@@ -155,7 +146,7 @@ def test_user_refresh_rate(capsys) -> None:
     another input, and continues to do so until it receives a valid
     input.
 
-    A valid input is an float-string within REFRESH_RATE_RANGE.
+    A valid input is a float-string within REFRESH_RATE_RANGE.
     """
     refresh_rate_range = {'min': 0, 'max': 10}
 
@@ -172,8 +163,8 @@ def test_user_refresh_rate(capsys) -> None:
             'not a number',
             (refresh_rate_range['min'] + refresh_rate_range['max']) / 2.0
         ]
-        for val in input_vals:
-            yield str(val)
+        for value in input_vals:
+            yield str(value)
 
     with (patch('builtins.input', side_effect=side_effects()),
           patch('game_of_life.menu.REFRESH_RATE_RANGE', new=refresh_rate_range)):
