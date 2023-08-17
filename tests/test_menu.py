@@ -176,3 +176,11 @@ def test_user_refresh_rate(capsys) -> None:
         captured = capsys.readouterr()
         assert captured.out
         assert val == (refresh_rate_range['min'] + refresh_rate_range['max']) / 2.0
+    # Check that an empty string returns the default without error.
+    defaults = Defaults(universe_size=Size(0, 0), preset=0, refresh_rate=0.5)
+    with (patch('builtins.input', return_value=''),
+          patch('game_of_life.menu.DEFAULTS', new=defaults)):
+        val = get_user_refresh_rate()
+        captured = capsys.readouterr()
+        assert captured.out == ''
+        assert val == defaults.refresh_rate
