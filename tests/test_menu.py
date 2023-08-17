@@ -118,8 +118,11 @@ def test_user_preset_choice(capsys) -> None:
               patch('game_of_life.menu.DEFAULTS', new=defaults)):
             val = get_user_preset_choice()
             captured = capsys.readouterr()
-            for err in errors:
-                assert err in captured.out
+            if len(errors) == 1:  # A single error
+                assert errors[0] == captured.out.strip()
+            else:
+                for err in errors:
+                    assert err in captured.out
             assert val == rtn
 
 
