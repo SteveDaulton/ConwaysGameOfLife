@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 from game_of_life.gol import Universe, get_all_presets
 from game_of_life.custom_types import Point, Preset, Size
 from game_of_life.validate import (
@@ -165,3 +164,14 @@ def test_init_cells():
         with pytest.raises(Exception):
             universe.init_cells(choice=choice)
         assert universe.live_cells == previous_state
+
+
+def test_refresh_rate() -> None:
+    """Test Universe.refresh_rate."""
+    default_rate = DEFAULTS.refresh_rate
+    universe = Universe()
+    # Case 1: Default value
+    assert universe.refresh_rate == default_rate
+    # Case 2: Set refresh rate.
+    universe.refresh_rate = 1.0
+    assert universe.refresh_rate == 1.0
