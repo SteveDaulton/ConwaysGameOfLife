@@ -71,14 +71,11 @@ def test_preset_menu_with_presets(capsys) -> None:
         assert captured.out != ''
         out = captured.out.strip()
         for line in out.split('\n'):
-            # Line should have two parts: 'index. name'.
-            # `name` may be any non-empty string
-            try:
-                idx_str, _ = line.split(' ', 1)
-                assert idx_str[:-1].isnumeric()
-                assert idx_str[-1] == '.'
-            except ValueError as exc:
-                raise AssertionError(f"Unexpected format in line: '{line}'") from exc
+            assert len(line.split()) == 2  # Example ['2.', 'Beacon']
+            idx_str, _ = line.split(' ', 1)
+            assert idx_str[:-1].isnumeric()
+            assert idx_str[-1] == '.'
+            assert line[-1] != ''  # Not an empty  string.
 
 
 def test_user_preset_choice(capsys) -> None:
