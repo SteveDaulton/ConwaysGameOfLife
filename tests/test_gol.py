@@ -1,10 +1,12 @@
 """Tests for gol.py."""
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import pytest
 
-from game_of_life.gol import Universe, get_all_presets
+from game_of_life.gol import (Universe,
+                              GameOfLifeUI,
+                              get_all_presets)
 from game_of_life.custom_types import Point, Preset, Size
 from game_of_life.validate import (
     valid_refresh_rate_string,
@@ -13,41 +15,33 @@ from game_of_life.validate import (
 from game_of_life.constants import DEFAULTS
 
 
-def test_singleton() -> None:
-    """Test that Universe is singleton."""
-    u1 = Universe()
-    u2 = Universe()
-    assert u1 is u2
+# pylint: disable=W0212 [protected-access]
 
 
-@pytest.mark.parametrize('attribute, expected_type', [
-    ('_initialized', bool),
-    ('display_size', Size),
-    ('_refresh_rate', float),
-    ('live_cells', set)])
-def test_universe_attribute_types(attribute, expected_type) -> None:
-    """Test Universe attribute types."""
+@pytest.fixture(name="universe_singleton")
+def universe_fixture():
+    """Fixture for Universe Singleton Testing.
+
+        Sets up and provides an initialized Universe singleton instance for testing purposes.
+        The fixture yields the singleton instance, and after the test completes, it resets
+        the Universe singleton to its initial state.
+
+        Yields
+        ------
+        Universe
+            An initialized Universe singleton instance.
+        """
+    # Setup: Initialize the Universe singleton
     universe = Universe()
-    attr = getattr(universe, attribute)
-    assert isinstance(attr, expected_type)
+    yield universe
+    # Teardown: Reset the Universe singleton to its initial state
+    Universe._instance = None
+    Universe._initialized = False
 
 
-@pytest.mark.parametrize('attribute, expected_val', [
-    ('_initialized', True),
-    ('display_size', DEFAULTS.universe_size),
-    ('_refresh_rate', DEFAULTS.refresh_rate),
-    ('live_cells', set())
-])
-def test_universe_attribute_values(attribute, expected_val):
-    """Test Universe attribute values."""
-    universe = Universe()
-    attr = getattr(universe, attribute)
-    assert attr == expected_val
-
-
-def test_update() -> None:
+def test_update(universe_singleton) -> None:
     """Test game_of_life.gol.update()"""
-    universe = Universe()  # Singleton instance.
+    universe = universe_singleton  # Singleton instance.
     # Case 1: A single cell dies.
     universe.live_cells = {Point(10, 10)}
     assert len(universe.update()) == 0
@@ -77,8 +71,43 @@ def test_get_preset() -> None:
         assert i == option.idx
 
 
+# Universe Tests
+
+def test_singleton(universe_singleton) -> None:
+    """Test that Universe is singleton."""
+    u1 = universe_singleton
+    u2 = universe_singleton
+    assert u1 is u2
+
+
+@pytest.mark.parametrize('attribute, expected_type', [
+    ('_initialized', bool),
+    ('display_size', Size),
+    ('_refresh_rate', float),
+    ('live_cells', set)])
+def test_universe_attribute_types(universe_singleton,attribute, expected_type) -> None:
+    """Test Universe attribute types."""
+    universe = universe_singleton
+    attr = getattr(universe, attribute)
+    assert isinstance(attr, expected_type)
+
+
+@pytest.mark.parametrize('attribute, expected_val', [
+    ('_initialized', True),
+    ('display_size', DEFAULTS.universe_size),
+    ('_refresh_rate', DEFAULTS.refresh_rate),
+    ('live_cells', set()),
+])
+def test_universe_attribute_values(universe_singleton, attribute, expected_val):
+    """Test Universe attribute values."""
+    universe = universe_singleton
+    attr = getattr(universe, attribute)
+    assert attr == expected_val
+
+
 def test_valid_preset_id() -> None:
     """Test __main__.valid_preset."""
+    # TODO: Doesn't belong in this file.
     valid_indices = range(preset_id_range())
     # Case 1: Valid presets.
     for idx in valid_indices:
@@ -103,6 +132,7 @@ def test_valid_refresh_rate() -> None:
     Refresh rate is fastest when waiting before refresh is zero (disabled).
     `slowest` is fairly arbitrary, but should match __main__.valid_refresh_rate().
     """
+    # TODO: Doesn't belong in this file.
     fastest = 0
     slowest = 10
     # Case 1: Valid values.
@@ -124,9 +154,9 @@ def test_valid_refresh_rate() -> None:
     assert 'not a number' in str(exc_info.value)
 
 
-def test_init_cells():
-    """Test init_cells."""
-    universe = Universe()
+def test_init_cells(universe_singleton):
+    """Test Universe.init_cells."""
+    universe = universe_singleton
     mock_presets = [Preset(0, 'first', {Point(0, 0), Point(1, 1)}),
                     Preset(1, 'second', {Point(0, 0)})]
     def mock_get_one_preset(choice):
@@ -166,12 +196,56 @@ def test_init_cells():
         assert universe.live_cells == previous_state
 
 
-def test_refresh_rate() -> None:
+def test_refresh_rate(universe_singleton) -> None:
     """Test Universe.refresh_rate."""
     default_rate = DEFAULTS.refresh_rate
-    universe = Universe()
+    universe = universe_singleton
     # Case 1: Default value
     assert universe.refresh_rate == default_rate
     # Case 2: Set refresh rate.
     universe.refresh_rate = 1.0
     assert universe.refresh_rate == 1.0
+
+
+# GameOfLifeUI Tests
+
+@pytest.mark.parametrize('attribute, expected_type', [
+    ('_universe', Universe),
+    ('_pad_size', Size),
+    ('_pad', None),  # Placeholder for _pad's expected type
+    ('_cell_char', str),
+    ('_refresh_rate', float),
+    ('_population', int),
+    ('_clock', float),
+])
+@patch('curses.newpad')  # Patch the curses.newpad function.
+def test_gameoflifeui_attribute_types(mock_newpad, attribute, expected_type) -> None:
+    """Test GameOfLifeUI attribute types."""
+    mock_curses_window = Mock(name='curses._CursesWindow')
+    mock_newpad.return_value = mock_curses_window
+    gol = GameOfLifeUI()
+    # Iterate through attributes and test types
+    attr = getattr(gol, attribute)
+    if attr == gol._pad:
+        assert isinstance(gol._pad, type(mock_curses_window))
+    else:
+        assert isinstance(attr, expected_type)
+
+
+@patch('curses.newpad')  # Patch the curses.newpad function
+def test_gameoflifeui_init(mock_newpad, universe_singleton):
+    """Test GameOfLifeUI attribute values."""
+    mock_curses_window = Mock(name='curses._CursesWindow')
+    mock_newpad.return_value = mock_curses_window
+    universe = universe_singleton
+    # Create the GameOfLifeUI instance
+    golui = GameOfLifeUI()
+
+    # Assertions for attribute initialization
+    assert golui._universe is universe
+    assert golui._pad_size == universe.display_size
+    assert golui._pad is mock_curses_window
+    assert golui._cell_char == ' '
+    assert golui._refresh_rate == universe.refresh_rate
+    assert golui._population == 0
+    assert isinstance(golui._clock, float)
