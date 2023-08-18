@@ -120,29 +120,3 @@ def valid_preset_id(value: int) -> int:
             f'{value} is not a valid preset ID.'
             f'Select a preset from 0 to {len(get_all_presets())}')
     return value
-
-
-def preset_id_range() -> int:
-    """Validate Preset ID indexes and returns the number of Presets.
-
-    Each ID should correspond with the preset index returned by
-    gol.get_all_presets()
-
-    Returns
-    -------
-    int
-        The number of registered presets, which is also the final ID + 1.
-
-    Raises
-    ------
-    IndexError:
-        A Preset does not match its index number.
-    """
-    ids = [preset.idx for preset in get_all_presets()]
-    for index, id_val in enumerate(ids):
-        if index != id_val:
-            raise IndexError(f'Invalid ID {id_val}')
-    preset_count = len(ids)
-    # If this function is called frequently, consider modifying
-    # to skip validation on each call.
-    return preset_count

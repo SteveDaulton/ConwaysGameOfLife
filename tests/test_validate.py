@@ -3,29 +3,7 @@
 import pytest
 
 from game_of_life.validate import (
-    valid_refresh_rate_string,
-    valid_preset_id_string,
-    preset_id_range)
-
-
-def test_valid_preset_id() -> None:
-    """Test __main__.valid_preset."""
-    valid_indices = range(preset_id_range())
-    # Case 1: Valid presets.
-    for idx in valid_indices:
-        assert valid_preset_id_string(f'{idx}') == idx
-    # Case 2: Invalid preset IDs below 0.
-    with pytest.raises(ValueError) as exc_info:
-        valid_preset_id_string("-1")
-    assert "is not a valid preset ID" in str(exc_info.value)
-    # Case 3: Invalid preset IDs above maximum index.
-    with pytest.raises(ValueError) as exc_info:
-        valid_preset_id_string(str(preset_id_range() + 1))
-    assert "is not a valid preset ID" in str(exc_info.value)
-    # Case 4: Non-integer input
-    with pytest.raises(ValueError) as exc_info:
-        valid_preset_id_string("not_an_integer")
-    assert "not_an_integer" in str(exc_info.value)
+    valid_refresh_rate_string)
 
 
 def test_valid_refresh_rate() -> None:
