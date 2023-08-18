@@ -126,11 +126,11 @@ class GameOfLifeUI:
         self._universe = Universe()  # Singleton instance
         self._pad_size = self._universe.display_size
         height, width = self._pad_size
-        self.pad = curses.newpad(height, width)
-        self.cell_char = ' '
-        self.refresh_rate = self._universe.refresh_rate
-        self.population: int = 0
-        self.clock = perf_counter()
+        self._pad: 'curses._CursesWindow' = curses.newpad(height, width)
+        self._cell_char = ' '
+        self._refresh_rate = self._universe.refresh_rate
+        self._population: int = 0
+        self._clock = perf_counter()
 
     @property
     def pad_size(self) -> Size:
@@ -164,11 +164,11 @@ class GameOfLifeUI:
             Such errors are expected and must pass silently.
 
         """
-        self.population = len(live_cells)
+        self._population = len(live_cells)
         for y, x in live_cells:
             # Adding characters outside the available window area raises a curses.error.
             try:
-                self.pad.addch(y, x, self.cell_char, curses.A_REVERSE)
+                self._pad.addch(y, x, self._cell_char, curses.A_REVERSE)
             except curses.error:
                 pass
 
@@ -179,10 +179,10 @@ class GameOfLifeUI:
         window_info: str = f' Height: {curses.LINES} Width: {curses.COLS} '
         window_info_pos = min(curses.COLS, self.pad_size.x) - len(window_info)
         # Clear top line
-        self.pad.addstr(0, 0, self.cell_char * curses.COLS)
+        self._pad.addstr(0, 0, self._cell_char * curses.COLS)
         # Add info to top line of pad.
-        self.pad.addstr(0, 0, f'Population: {self.population} ', curses.A_REVERSE)
-        self.pad.addstr(0, window_info_pos, window_info, curses.A_REVERSE)
+        self._pad.addstr(0, 0, f'Population: {self._population} ', curses.A_REVERSE)
+        self._pad.addstr(0, window_info_pos, window_info, curses.A_REVERSE)
 
     def refresh_pad(self) -> None:
         """Refresh the Curses pad.
@@ -198,20 +198,20 @@ class GameOfLifeUI:
         - The pad's refresh area is limited to fit within the terminal window.
         """
         # Wait if less than refresh_rate (seconds) since previous refresh.
-        if 0.0 < (perf_counter() - self.clock) < self.refresh_rate:
-            sleep_time = self.refresh_rate - (perf_counter() - self.clock)
+        if 0.0 < (perf_counter() - self._clock) < self._refresh_rate:
+            sleep_time = self._refresh_rate - (perf_counter() - self._clock)
             curses.napms(int(sleep_time * 1000))
-        self.clock = perf_counter()
+        self._clock = perf_counter()
         # Now refresh the area of the pad that will fit in terminal window.
         y_max = min(curses.LINES - 1, self.pad_size.y)
         x_max = min(curses.COLS - 1, self.pad_size.x)
-        self.pad.refresh(0, 0, 0, 0, y_max, x_max)
+        self._pad.refresh(0, 0, 0, 0, y_max, x_max)
 
     def clear_cells(self, cells: set[Point]) -> None:
         """Clear the cells on the pad."""
         for y, x in cells:
             try:
-                self.pad.addch(y, x, self.cell_char)
+                self._pad.addch(y, x, self._cell_char)
             except curses.error:
                 # addch to bottom right corner throws a curses error
                 pass
