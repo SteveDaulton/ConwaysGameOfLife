@@ -40,13 +40,13 @@ def refresh_rate_menu() -> float:
     """Prompt for refresh rate input."""
     fastest, slowest = REFRESH_RATE_RANGE.values()
     print(f"""Set animation speed.
-    Enter a target value for the length of time, in seconds, that each
-    animation will be displayed. The game will wait between frames if the
-    next frame is ready before the specified time.
-    
-    Valid values are in the range:
-    {fastest} : As fast as possible.
-    {slowest} : Each frame displayed for {slowest} seconds.
+Enter a target value for the length of time, in seconds, that each
+animation will be displayed. The game will wait between frames if the
+next frame is ready before the specified time.
+
+Valid values are in the range:
+{fastest} : As fast as possible.
+{slowest} : Each frame displayed for {slowest} seconds.
     """)
     return get_user_refresh_rate()
 
