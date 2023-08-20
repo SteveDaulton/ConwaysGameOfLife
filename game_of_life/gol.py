@@ -198,14 +198,15 @@ class GameOfLifeUI:
         - The pad's refresh area is limited to fit within the terminal window.
         """
         # Wait if less than refresh_rate (seconds) since previous refresh.
-        if 0.0 < (perf_counter() - self._clock) < self._refresh_rate:
-            sleep_time = self._refresh_rate - (perf_counter() - self._clock)
-            curses.napms(int(sleep_time * 1000))
-        self._clock = perf_counter()
+        time_since_last_refresh = perf_counter() - self._clock
+        if time_since_last_refresh < self._refresh_rate:
+            sleep_time = int((self._refresh_rate - time_since_last_refresh) * 1000)
+            curses.napms(sleep_time)
         # Now refresh the area of the pad that will fit in terminal window.
         y_max = min(curses.LINES - 1, self.pad_size.y)
         x_max = min(curses.COLS - 1, self.pad_size.x)
         self._pad.refresh(0, 0, 0, 0, y_max, x_max)
+        self._clock = perf_counter()
 
     def clear_cells(self, cells: set[Point]) -> None:
         """Clear the cells on the pad."""
