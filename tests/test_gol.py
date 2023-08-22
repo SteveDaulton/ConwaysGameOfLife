@@ -6,9 +6,10 @@ import pytest
 
 from game_of_life.gol import (Universe,
                               GameOfLifeUI,
-                              get_all_presets)
+                              get_all_presets,
+                              get_one_preset)
 from game_of_life.custom_types import Point, Preset, Size
-from game_of_life.constants import DEFAULTS
+from game_of_life.constants import DEFAULTS, PRESETS
 
 
 # pylint: disable=W0212 [protected-access]
@@ -196,3 +197,34 @@ def test_gameoflifeui_init(mock_newpad, universe_singleton):
     assert golui._refresh_rate == universe.refresh_rate
     assert golui._population == 0
     assert isinstance(golui._clock, float)
+
+
+@pytest.mark.timeout(0.5)  # Ensure we don't get stuck in loop.
+def test_gol_get_one_preset() -> None:
+    """Test gol.get_one_preset.
+
+    Notes
+    -----
+    1. get_one_preset returns a valid Preset.
+    2. Presets should have an idx attribute that matches its index.
+    3. raises IndexError when preset request fails.
+    4. Number of presets should length of PRESETS + 1 (the random preset)
+    """
+    # One `random` preset is added to the constant.PRESETS
+    expected_number_of_presets = len(PRESETS) + 1
+
+    index = 0
+    preset_count = 0
+    while True:
+        try:
+            preset = get_one_preset(index)
+            # Case 1: preset is type Preset
+            assert isinstance(preset, Preset)
+            # Case 2: preset.idx == index
+            assert preset.idx == index
+            preset_count += 1
+        except IndexError:  # Case 3: No more presets
+            # Case 4: Expected number of presets.
+            assert preset_count == expected_number_of_presets
+            break  # Exit test.
+        index += 1
