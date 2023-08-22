@@ -16,7 +16,7 @@ from game_of_life.custom_types import Preset, Point
 
 def test_preset_type() -> None:
     """Test: RESETS is a list of valid Preset instances."""
-    assert isinstance(PRESETS, list)
+    assert isinstance(PRESETS, tuple)
     for preset in PRESETS:
         assert isinstance(preset, Preset)
 

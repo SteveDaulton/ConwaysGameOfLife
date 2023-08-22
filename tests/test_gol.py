@@ -59,8 +59,8 @@ def test_update(universe_singleton) -> None:
 def test_get_preset() -> None:
     """Test game_of_life.gol.get_preset()"""
     presets = get_all_presets()
-    # Case 1: presets is a list
-    assert isinstance(presets, list)
+    # Case 1: presets is a tuple
+    assert isinstance(presets, tuple)
     # Case 2: Each preset is an instance of Preset named tuple.
     # Case 3: Preset indices are numbered 0 to n.
     for i, option in enumerate(presets):

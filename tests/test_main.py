@@ -38,7 +38,7 @@ def test_main_defaults(mock_patches) -> None:
     assert defaults.refresh_rate < 10.0
 
     all_presets = get_all_presets()
-    assert isinstance(all_presets, list)
+    assert isinstance(all_presets, tuple)
     # Check that preset ID matches index number.
     valid_ids = [preset.idx for index, preset in enumerate(all_presets)
         if index == preset.idx]
