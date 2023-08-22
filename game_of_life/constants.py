@@ -8,7 +8,7 @@ from typing import Final
 
 from game_of_life.custom_types import Preset, Point, Defaults, Size
 
-PRESETS: Final[list[Preset]] = [
+PRESETS: Final[tuple[Preset, ...]] = (
     Preset(0, 'Block', {Point(7, 7), Point(8, 7), Point(7, 8), Point(8, 8)}),
     Preset(1, 'Beehive', {Point(6, 10), Point(6, 11), Point(7, 9),
                           Point(7, 12), Point(8, 10), Point(8, 11)}),
@@ -42,11 +42,10 @@ PRESETS: Final[list[Preset]] = [
                                 Point(10, 3), Point(10, 7),
                                 Point(11, 3), Point(11, 7),
                                 Point(12, 4), Point(12, 6),
-                                Point(13, 5)})
-]
+                                Point(13, 5)}))
 
 
-def random_preset(random_id, pad_size):
+def random_preset(random_id, pad_size) -> Preset:
     """Generate a random preset.
 
     Random preset 'may' include bottom right corner cell, which

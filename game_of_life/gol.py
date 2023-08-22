@@ -272,13 +272,12 @@ def play(stdscr: curses.window, choice: int, refresh_rate: float) -> None:
         universe.live_cells = universe.update()
 
 
-def get_all_presets() -> list[Preset]:
+def get_all_presets() -> tuple[Preset, ...]:
     """Return list of presets."""
-    presets = PRESETS
+    presets: tuple[Preset, ...] = PRESETS
     next_idx = presets[-1][0] + 1
-    rand_preset = random_preset(next_idx, DEFAULTS.universe_size)
-    presets.append(rand_preset)
-    return presets
+    rand_preset: Preset = random_preset(next_idx, DEFAULTS.universe_size)
+    return presets + (rand_preset,)
 
 
 def get_one_preset(choice: int) -> Preset:
