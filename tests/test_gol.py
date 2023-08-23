@@ -82,7 +82,7 @@ def test_singleton(universe_singleton) -> None:
     ('display_size', Size),
     ('_refresh_rate', float),
     ('live_cells', set)])
-def test_universe_attribute_types(universe_singleton,attribute, expected_type) -> None:
+def test_universe_attribute_types(universe_singleton, attribute, expected_type) -> None:
     """Test Universe attribute types."""
     universe = universe_singleton
     attr = getattr(universe, attribute)
@@ -197,6 +197,26 @@ def test_gameoflifeui_init(mock_newpad, universe_singleton):
     assert golui._refresh_rate == universe.refresh_rate
     assert golui._population == 0
     assert isinstance(golui._clock, float)
+
+
+@pytest.fixture(name="mock_game_of_life_ui")
+def mock_gol_ui():
+    """Fixture to mock GameOfLifeUI class for testing."""
+    class MockGameOfLifeUI(GameOfLifeUI):
+        """Mock of GameOfLifeUI class."""
+        # pylint: disable=super-init-not-called
+        def __init__(self):
+            # Do not call the parent class's __init__ method.
+            # Initialize attributes needed for testing.
+            self._pad_size = Size(y=50, x=100)  # Expected pad size
+
+    with patch('game_of_life.gol.GameOfLifeUI', MockGameOfLifeUI):
+        yield MockGameOfLifeUI()
+
+
+def test_gameoflifeui_pad_size(mock_game_of_life_ui):
+    """Test game_of_life.GameOfLifeUI.pad_size getter."""
+    assert mock_game_of_life_ui.pad_size == Size(y=50, x=100)
 
 
 @pytest.mark.timeout(0.5)  # Ensure we don't get stuck in loop.
